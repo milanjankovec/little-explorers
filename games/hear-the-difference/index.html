@@ -1,0 +1,1151 @@
+<!--
+SPDX-FileCopyrightText: 2026 Milan Jankovec
+SPDX-License-Identifier: EUPL-1.2
+-->
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%229%22%20fill%3D%22%23dceedd%22%2F%3E%3Cg%20fill%3D%22%23236747%22%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2210%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2221.7%22%20cy%3D%2214.2%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2219.5%22%20cy%3D%2220.8%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2212.5%22%20cy%3D%2220.8%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2210.3%22%20cy%3D%2214.2%22%20r%3D%224.5%22%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%223.3%22%20fill%3D%22%23ffd46b%22%2F%3E%3C%2Fsvg%3E">
+    <meta name="author" content="Milan Jankovec">
+    <meta name="repository" content="https://github.com/milanjankovec/little-explorers">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Počuj rozdiel</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #edf1f6;
+        color: #20252d;
+        font-family: system-ui, sans-serif;
+      }
+      .icon-library { position: absolute; width: 0; height: 0; overflow: hidden; }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        max-width: 210mm;
+        margin: 0 auto 20px;
+      }
+      .toolbar h1 { margin: 0; font-size: 1.4rem; overflow-wrap: anywhere; }
+      .actions { display: flex; gap: 8px; }
+      .actions button {
+        padding: 9px 14px;
+        border: 1px solid #246547;
+        border-radius: 8px;
+        background: #246547;
+        color: white;
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      .actions .secondary { background: white; color: #234235; }
+      .actions button:focus-visible { outline: 2px solid #3158a5; outline-offset: 3px; }
+      .worksheet {
+        width: min(100%, 210mm);
+        margin: 0 auto 24px;
+        padding: 10mm 12mm;
+        background: white;
+        box-shadow: 0 2px 18px #1720331a;
+      }
+      .page-header {
+        margin-bottom: 4mm;
+        padding-bottom: 2mm;
+        border-bottom: .35mm solid #cbd9d0;
+      }
+      .page-header h2 { margin: 0; color: #202f26; font-size: 16pt; line-height: 1.2; }
+      .page-header p { margin: 1.5mm 0 0; color: #35463e; font-size: 10pt; line-height: 1.4; }
+      #worksheet-content { min-width: 0; }
+      #worksheet-content > svg { display: block; width: 100%; height: auto; }
+      .game-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px 11px;
+        width: min(100%, 210mm);
+        margin-inline: auto;
+        padding-block: 9px 5px;
+        border-top: 1px solid #cbd3df;
+        color: #4c5766;
+        font-size: .65rem;
+        line-height: 1.5;
+      }
+
+      .game-footer a {
+        color: inherit;
+        overflow-wrap: anywhere;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .game-footer a:hover { color: #3158a5; background: none; }
+      .game-topbar {
+        max-width: 900px;
+        margin: 0 auto 12px;
+        color: #394553;
+        font: 600 .9rem/1.4 system-ui, sans-serif;
+      }
+
+      .game-brand-row, .game-links {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+      }
+
+      .game-brand-row {
+        min-height: 56px;
+        padding-bottom: 9px;
+        border-bottom: 1px solid #cbd9d0;
+      }
+
+      .game-links { position: relative; padding-top: 8px; }
+      .game-topbar .site-brand, .game-topbar .catalog-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        max-width: 100%;
+        gap: 8px;
+        color: #246547;
+        text-decoration: none;
+      }
+
+      .game-topbar .site-brand { color: #202f26; font-size: 1.06rem; font-weight: 800; }
+      .game-topbar .catalog-link { font-weight: 700; overflow-wrap: anywhere; }
+      .game-topbar .catalog-link:hover, .game-topbar .site-brand:hover { text-decoration: underline; text-underline-offset: .2em; }
+      .catalog-link svg { flex: none; }
+      .game-brand-icon {
+        display: grid;
+        flex: none;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: #dceedd;
+        color: #236747;
+        font-size: 1.25rem;
+        line-height: 1;
+      }
+
+      .language-bar[hidden], .games-menu[hidden] { display: none; }
+      .language-bar { margin-inline-start: auto; }
+      .language-control { display: flex; align-items: center; gap: 7px; }
+      .language-control select {
+        max-width: min(145px, 42vw);
+        padding: 5px 6px;
+        border: 1px solid #cbd3df;
+        border-radius: 6px;
+        background: #fff;
+        color: inherit;
+        font: inherit;
+      }
+
+      .game-topbar :is(a, summary, select):focus-visible {
+        outline: 2px solid #246547;
+        outline-offset: 2px;
+      }
+
+      .games-menu { max-width: 100%; margin-inline-start: auto; }
+      .games-menu summary {
+        min-height: 44px;
+        padding: 10px 12px;
+        border: 1px solid #cbd3df;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+        overflow-wrap: anywhere;
+      }
+
+      .games-menu-panel {
+        position: absolute;
+        z-index: 10;
+        top: calc(100% + 6px);
+        inset-inline-end: 0;
+        width: min(480px, 100%);
+        max-height: min(58vh, 470px);
+        overflow: auto;
+        padding: 8px;
+        border: 1px solid #cbd3df;
+        border-radius: 9px;
+        background: #fff;
+        box-shadow: 0 6px 22px #17203324;
+      }
+
+      .games-menu-panel ul {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 3px 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .games-menu-panel a {
+        display: block;
+        padding: 5px 7px;
+        border-radius: 5px;
+        color: inherit;
+        overflow-wrap: anywhere;
+        text-decoration: none;
+      }
+
+      .games-menu-panel a:hover, .games-menu-panel a[aria-current="page"] { background: #e7f2e8; }
+
+      @media screen and (max-width: 430px) {
+        .games-menu-panel ul { grid-template-columns: 1fr; }
+      }
+
+      @media print { .game-topbar { display: none; } }
+
+      @media (max-width: 640px) {
+        body { padding: 12px; }
+        .toolbar { align-items: flex-start; flex-direction: column; }
+        .actions { width: 100%; }
+        .actions button { flex: 1; }
+        .worksheet { padding: 5mm; }
+      }
+
+      @page { size: A4 portrait; margin: 0; }
+      @media print {
+        body { margin: 0; padding: 0; background: white; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        .toolbar, .language-bar, .game-footer { display: none; }
+        .worksheet {
+          width: 210mm;
+          height: 297mm;
+          margin: 0;
+          padding: 10mm 12mm;
+          box-shadow: none;
+          break-inside: avoid;
+        }
+      }
+    </style>
+    <script type="application/json" id="game-translations">
+    {
+      "Počuj rozdiel": ["Hear the difference","Slyš rozdíl","Hör den Unterschied","Usłysz różnicę","Halld meg a különbséget","Écoute la différence","Oye la diferencia","Senti la differenza","Ouve a diferença","Hoor het verschil","Auzi diferența","Почуй різницю","Άκου τη διαφορά","Hör skillnaden","听出不同","聽出不同","にた音を聞き分けよう","다른 소리를 들어요","Dengar perbedaannya","Farkı duy","Nghe và phân biệt","Escute a diferença"],
+      "Dospelý prečíta v každom riadku iba slovo, ktoré je pri obrázkoch. Pozorne počúvaj a zakrúžkuj obrázok toho, čo počuješ.": ["Ask an adult to read only the word printed for each row. Listen carefully and circle the picture that matches the word you hear.","Dospělý přečte v každém řádku jen slovo uvedené u obrázků. Pozorně poslouchej a zakroužkuj obrázek toho, co slyšíš.","Bitte einen Erwachsenen, in jeder Reihe nur das gedruckte Wort vorzulesen. Hör gut zu und kreise das Bild ein, das zum gehörten Wort passt.","Poproś dorosłego, by w każdym rzędzie przeczytał tylko wydrukowane słowo. Słuchaj uważnie i zakreśl obrazek pasujący do słowa.","Kérj meg egy felnőttet, hogy minden sorban csak a nyomtatott szót olvassa fel. Figyelj, és karikázd be azt a képet, amelyik illik a hallott szóhoz.","Demande à un adulte de lire seulement le mot imprimé pour chaque rangée. Écoute bien et entoure l’image qui correspond au mot entendu.","Pide a una persona adulta que lea solo la palabra impresa en cada fila. Escucha con atención y rodea el dibujo que corresponde a la palabra que oyes.","Chiedi a un adulto di leggere solo la parola stampata per ogni riga. Ascolta bene e cerchia l’immagine che corrisponde alla parola che senti.","Pede a um adulto para ler apenas a palavra impressa em cada fila. Ouve com atenção e rodeia a imagem que corresponde à palavra que ouves.","Vraag een volwassene om bij elke rij alleen het gedrukte woord voor te lezen. Luister goed en omcirkel het plaatje dat past bij wat je hoort.","Roagă un adult să citească doar cuvântul scris pe fiecare rând. Ascultă atent și încercuiește imaginea care se potrivește cuvântului auzit.","Попроси дорослого прочитати лише надруковане слово в кожному рядку. Уважно слухай і обведи малюнок, що відповідає почутому слову.","Ζήτησε από έναν μεγάλο να διαβάσει μόνο την τυπωμένη λέξη σε κάθε σειρά. Άκου προσεκτικά και κύκλωσε την εικόνα που ταιριάζει στη λέξη.","Be en vuxen att bara läsa det tryckta ordet på varje rad. Lyssna noga och ringa in bilden som passar till ordet du hör.","请大人每行只读印出来的那个词。仔细听，然后圈出和听到的词相配的图。","請大人每行只讀印出來的那個詞。仔細聽，然後圈出和聽到的詞相配的圖。","一だんずつ、書いてあることばだけを大人に読んでもらおう。よく聞いて、そのことばに合う絵に丸をつけてね。","각 줄에 쓰인 낱말만 어른에게 읽어 달라고 해요. 잘 듣고 들은 낱말에 맞는 그림에 동그라미를 그려요.","Minta orang dewasa membacakan hanya kata yang tertulis di tiap baris. Dengarkan baik-baik, lalu lingkari gambar yang sesuai.","Bir yetişkinden her sırada yalnızca yazılı sözcüğü okumasını iste. Dikkatle dinle ve duyduğun sözcüğe uyan resmi yuvarlak içine al.","Nhờ người lớn chỉ đọc từ được in trong mỗi hàng. Lắng nghe kỹ rồi khoanh tròn hình tương ứng với từ em nghe được.","Peça para um adulto ler só a palavra impressa em cada linha. Escute com atenção e circule a figura que combina com a palavra ouvida."]
+    }
+    </script>
+    <script>
+      (() => {
+        const languages = {"sk":"Slovenčina","en":"English","cs":"Čeština","de":"Deutsch","pl":"Polski","hu":"Magyar","fr":"Français","es":"Español","it":"Italiano","pt":"Português","nl":"Nederlands","ro":"Română","uk":"Українська","el":"Ελληνικά","sv":"Svenska","zh-Hans":"简体中文","zh-Hant":"繁體中文","ja":"日本語","ko":"한국어","id":"Bahasa Indonesia","tr":"Türkçe","vi":"Tiếng Việt","pt-BR":"Português (Brasil)"};
+        const codes = Object.keys(languages).slice(1);
+        const shared = {"Jazyk":["Language","Jazyk","Sprache","Język","Nyelv","Langue","Idioma","Lingua","Idioma","Taal","Limbă","Мова","Γλώσσα","Språk","语言","語言","言語","언어","Bahasa","Dil","Ngôn ngữ","Idioma"],"Všetky hry":["All games","Všechny hry","Alle Spiele","Wszystkie gry","Minden játék","Tous les jeux","Todos los juegos","Tutti i giochi","Todos os jogos","Alle spellen","Toate jocurile","Усі ігри","Όλα τα παιχνίδια","Alla spel","全部游戏","全部遊戲","すべてのゲーム","모든 놀이","Semua permainan","Tüm oyunlar","Tất cả trò chơi","Todos os jogos"],"Vytlačiť list":["Print worksheet","Vytisknout list","Arbeitsblatt drucken","Drukuj kartę","Feladatlap nyomtatása","Imprimer la fiche","Imprimir la ficha","Stampa la scheda","Imprimir a ficha","Werkblad afdrukken","Tipărește fișa","Друк завдання","Εκτύπωση φύλλου","Skriv ut arbetsblad","打印练习单","列印學習單","ワークシートを印刷","활동지 인쇄","Cetak lembar aktivitas","Çalışma sayfasını yazdır","In phiếu bài tập","Imprimir atividade"],"Vytlačiť hry":["Print games","Vytisknout hry","Spiele drucken","Drukuj gry","Játékok nyomtatása","Imprimer les jeux","Imprimir los juegos","Stampa i giochi","Imprimir os jogos","Spellen afdrukken","Tipărește jocurile","Друк ігор","Εκτύπωση παιχνιδιών","Skriv ut spelen","打印游戏","列印遊戲","ゲームを印刷","놀이 인쇄","Cetak permainan","Oyunları yazdır","In trò chơi","Imprimir os jogos"],"Vytvoril Milan Jankovec":["Created by Milan Jankovec","Vytvořil Milan Jankovec","Erstellt von Milan Jankovec","Autor: Milan Jankovec","Készítette: Milan Jankovec","Créé par Milan Jankovec","Creado por Milan Jankovec","Creato da Milan Jankovec","Criado por Milan Jankovec","Gemaakt door Milan Jankovec","Creat de Milan Jankovec","Автор: Milan Jankovec","Δημιουργός: Milan Jankovec","Skapat av Milan Jankovec","作者：Milan Jankovec","作者：Milan Jankovec","制作 Milan Jankovec","제작 Milan Jankovec","Dibuat oleh Milan Jankovec","Hazırlayan Milan Jankovec","Tác giả Milan Jankovec","Criado por Milan Jankovec"],"Úloha":["Task","Úkol","Aufgabe","Zadanie","Feladat","Exercice","Ejercicio","Esercizio","Exercício","Opdracht","Exercițiu","Завдання","Άσκηση","Uppgift","任务","任務","問題","문제","Tugas","Görev","Nhiệm vụ","Exercício"],"Výber":["Choices","Výběr","Auswahl","Wybór","Választék","Choix","Opciones","Opzioni","Opções","Keuzes","Opțiuni","Варіанти","Επιλογές","Alternativ","选项","選項","選択肢","보기","Pilihan","Seçenekler","Các lựa chọn","Opções"],"Koľko?":["How many?","Kolik?","Wie viele?","Ile?","Hány?","Combien ?","¿Cuántos?","Quanti?","Quantos?","Hoeveel?","Câte?","Скільки?","Πόσα;","Hur många?","有多少？","有多少？","いくつ？","몇 개일까요?","Berapa banyak?","Kaç tane?","Có bao nhiêu?","Quantos?"],"Nové úlohy":["New activities","Nové úkoly","Neue Aufgaben","Nowe zadania","Új feladatok","Nouveaux exercices","Nuevos ejercicios","Nuovi esercizi","Novos exercícios","Nieuwe opdrachten","Exerciții noi","Нові завдання","Νέες ασκήσεις","Nya uppgifter","换一组题目","換一組題目","新しい問題","새 문제","Aktivitas baru","Yeni etkinlikler","Bài tập mới","Novos exercícios"],"Nové obrázky":["New pictures","Nové obrázky","Neue Bilder","Nowe obrazki","Új képek","Nouvelles images","Nuevas imágenes","Nuove immagini","Novas imagens","Nieuwe afbeeldingen","Imagini noi","Нові малюнки","Νέες εικόνες","Nya bilder","换一组图片","換一組圖片","新しい絵","새 그림","Gambar baru","Yeni resimler","Hình mới","Novas imagens"],"Späť na hry":["Back to games","Zpět ke hrám","Zurück zu den Spielen","Wróć do gier","Vissza a játékokhoz","Retour aux jeux","Volver a los juegos","Torna ai giochi","Voltar aos jogos","Terug naar de spellen","Înapoi la jocuri","Назад до ігор","Πίσω στα παιχνίδια","Tillbaka till spelen","返回游戏列表","返回遊戲列表","ゲーム一覧へ戻る","게임 목록으로 돌아가기","Kembali ke daftar permainan","Oyunlara dön","Quay lại danh sách trò chơi","Voltar aos jogos"],"Pracovný list":["Worksheet","Pracovní list","Arbeitsblatt","Karta pracy","Feladatlap","Fiche d’activité","Ficha de actividades","Scheda di attività","Ficha de atividades","Werkblad","Fișă de lucru","Робочий аркуш","Φύλλο εργασίας","Arbetsblad","练习单","學習單","ワークシート","활동지","Lembar aktivitas","Çalışma sayfası","Phiếu bài tập","Folha de atividade"]};
+        const messages = JSON.parse(document.getElementById("game-translations").textContent);
+        const preferenceKey = "hrave-listy-language";
+        const current = new URL(location.href);
+        const resolveLanguage = code => Object.keys(languages).find(key => key.toLowerCase() === code?.toLowerCase());
+        let saved;
+        try { saved = localStorage.getItem(preferenceKey); } catch {}
+        const requested = resolveLanguage(current.searchParams.get("lang"));
+        const language = requested ?? resolveLanguage(saved) ?? "en";
+        const column = codes.indexOf(language);
+
+        function remember(code) {
+          try { localStorage.setItem(preferenceKey, code); } catch {}
+        }
+
+        function localizedUrl(href, code) {
+          const url = new URL(href, location.href);
+          url.searchParams.set("lang", code);
+          return url;
+        }
+
+        function translate(value) {
+          if (language === "sk" || !value) return value;
+          const key = value.trim().replace(/\s+/g, " ");
+          const exact = (messages[key] ?? shared[key])?.[column];
+          if (exact !== undefined) return exact;
+          const numbered = key.match(/^(\d+\.\s+)(.+)$/u);
+          if (numbered) return numbered[1] + translate(numbered[2]);
+          const colon = key.indexOf(":");
+          if (colon > 0) {
+            const label = key.slice(0, colon);
+            const tail = key.slice(colon + 1).trim();
+            const translatedLabel = translate(label);
+            const translatedTail = translate(tail);
+            if (label !== translatedLabel || tail !== translatedTail) {
+              return translatedLabel + ":" + (tail ? " " + translatedTail : "");
+            }
+          }
+          if (key.includes(" | ")) return key.split(" | ").map(translate).join(" | ");
+          if (key.includes(", ")) {
+            const parts = key.split(", ");
+            const translated = parts.map(translate).join(", ");
+            if (translated !== key) return translated;
+          }
+          return value;
+        }
+
+        window.HraveListy = { language, t: translate };
+        document.documentElement.lang = language;
+        if (requested) remember(language);
+
+        const visitedText = new WeakSet();
+        const visitedElements = new WeakSet();
+        const skipped = "script, style, [data-no-l10n]";
+
+        function translateText(node) {
+          if (visitedText.has(node) || node.parentElement?.closest(skipped)) return;
+          visitedText.add(node);
+          const content = node.data.trim();
+          const translated = translate(content);
+          if (content !== translated) node.data = node.data.replace(content, translated);
+        }
+
+        function translateAttributes(element) {
+          if (visitedElements.has(element) || element.closest(skipped)) return;
+          visitedElements.add(element);
+          for (const attribute of ["aria-label", "title", "placeholder"]) {
+            const value = element.getAttribute(attribute);
+            if (value) element.setAttribute(attribute, translate(value));
+          }
+        }
+
+        function translateTree(root) {
+          if (root.nodeType === Node.TEXT_NODE) {
+            translateText(root);
+            return;
+          }
+          if (root.nodeType !== Node.ELEMENT_NODE || root.closest(skipped)) return;
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+          while (walker.nextNode()) translateText(walker.currentNode);
+          translateAttributes(root);
+          root.querySelectorAll("[aria-label], [title], [placeholder]").forEach(translateAttributes);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+          const picker = document.getElementById("worksheet-language");
+          for (const [code, name] of Object.entries(languages)) {
+            const option = new Option(name, code);
+            option.lang = code;
+            option.setAttribute("data-no-l10n", "");
+            picker.add(option);
+          }
+          picker.value = language;
+          const menu = document.getElementById("related-games");
+          if (menu) {
+            const catalog = menu.closest("nav").querySelector(".catalog-link").href;
+            const currentPage = current.pathname.endsWith("/") ? new URL("index.html", current).pathname : current.pathname;
+            for (const game of [{"path":"games/roads/index.html","title":"Detské cestičky","names":["Little mazes","Dětské cestičky","Kleine Labyrinthe","Małe labirynty","Kis útvesztők","Petits labyrinthes","Pequeños laberintos","Piccoli labirinti","Pequenos labirintos","Kleine doolhoven","Mici labirinturi","Маленькі лабіринти","Μικροί λαβύρινθοι","Små labyrinter","小小迷宫","小小迷宮","かんたん迷路","쉬운 미로","Labirin sederhana","Küçük labirentler","Mê cung nhỏ","Pequenos labirintos"]},{"path":"games/collector/index.html","title":"Bludisko so zberom odmien","names":["Star hunt maze","Bludiště se sbíráním hvězdiček","Sternensuche im Labyrinth","Labirynt z gwiazdkami","Csillaggyűjtő útvesztő","Labyrinthe aux étoiles","Laberinto de estrellas","Labirinto delle stelline","Labirinto de estrelas","Sterrenjacht in het doolhof","Labirintul steluțelor","Лабіринт із зірочками","Λαβύρινθος με αστεράκια","Stjärnjakt i labyrinten","寻找星星的迷宫","尋找星星的迷宮","星集め迷路","별 모으기 미로","Labirin berburu bintang","Yıldız avı labirenti","Mê cung tìm sao","Labirinto de estrelas"]},{"path":"games/direction-maze/index.html","title":"Labyrint so šípkami","names":["Arrow maze","Bludiště se šipkami","Pfeillabyrinth","Labirynt ze strzałkami","Nyilas útvesztő","Labyrinthe fléché","Laberinto de flechas","Labirinto con frecce","Labirinto de setas","Pijldoolhof","Labirint cu săgeți","Лабіринт зі стрілками","Λαβύρινθος με βέλη","Pillabyrint","箭头迷宫","箭頭迷宮","矢印迷路","화살표 미로","Labirin panah","Ok labirenti","Mê cung mũi tên","Labirinto de setas"]},{"path":"games/tangled/index.html","title":"Popletené šnúrky","names":["Tangled strings","Zamotané provázky","Verhedderte Schnüre","Poplątane sznurki","Összegubancolódott zsinórok","Ficelles emmêlées","Cuerdas enredadas","Fili aggrovigliati","Fios emaranhados","Verwarde touwtjes","Sfori încâlcite","Заплутані мотузочки","Μπερδεμένα κορδόνια","Trassliga snören","缠在一起的线","纏在一起的線","からまったひも","엉킨 끈","Tali kusut","Dolaşmış ipler","Những sợi dây rối","Fios emaranhados"]},{"path":"games/non-crossing-paths/index.html","title":"Cestičky bez križovania","names":["Paths That Don’t Cross","Cestičky bez křížení","Wege ohne Kreuzung","Ścieżki bez skrzyżowań","Kereszteződés nélküli utak","Des chemins qui ne se croisent pas","Caminos sin cruces","Percorsi senza incroci","Caminhos sem cruzamentos","Paden zonder kruisingen","Drumuri fără intersecții","Стежки без перетинів","Μονοπάτια χωρίς διασταυρώσεις","Vägar som inte korsas","路线不交叉","路線不交叉","交わらない道","서로 만나지 않는 길","Jalur Tanpa Persilangan","Kesişmeyen Yollar","Các đường không giao nhau","Caminhos sem cruzamentos"]},{"path":"games/complete-the-road/index.html","title":"Doplň chýbajúcu cestu","names":["Complete the Road","Doplň chybějící cestu","Ergänze das Straßenstück","Uzupełnij drogę","Egészítsd ki az utat","Complète la route","Completa el camino","Completa la strada","Completa a estrada","Maak de weg af","Completează drumul","Доповни дорогу","Συμπλήρωσε τον δρόμο","Gör vägen hel","补上缺失的路段","補上缺少的路段","道の続きをつくろう","빠진 길을 이어요","Lengkapi Jalannya","Eksik Yolu Tamamla","Nối đoạn đường còn thiếu","Complete a estrada"]},{"path":"games/shortest-delivery/index.html","title":"Najkratší rozvoz","names":["Shortest Delivery Route","Nejkratší rozvoz","Der kürzeste Lieferweg","Najkrótsza dostawa","A legrövidebb szállítási út","La livraison la plus courte","La ruta de reparto más corta","La consegna più breve","A entrega pelo caminho mais curto","De kortste bezorgroute","Cel mai scurt drum de livrare","Найкоротша доставка","Η πιο σύντομη παράδοση","Kortaste leveransvägen","最短送货路线","最短送貨路線","いちばん短い配達の道","가장 짧은 배달길","Rute Antar Terpendek","En Kısa Teslimat Yolu","Đường giao hàng ngắn nhất","O caminho mais curto para a entrega"]},{"path":"games/pattern-path/index.html","title":"Cestička podľa vzoru","names":["Follow the pattern path","Cestička podle vzoru","Musterpfad","Ścieżka według wzoru","Ösvény a minta szerint","Le chemin des motifs","Camino de patrones","Il percorso dei simboli","Caminho do padrão","Het patronenpad","Drumul după model","Стежка за зразком","Μονοπάτι με μοτίβο","Mönsterstigen","按规律找路","按規律找路","もようの道","규칙을 따라 길 찾기","Jalur berpola","Desen yolu","Đường đi theo mẫu","Caminho do padrão"]},{"path":"games/tunnel-train/index.html","title":"Vláčik v tuneloch","names":["Train through tunnels","Vláček v tunelech","Zug durch die Tunnel","Pociąg w tunelach","Vonat az alagutakban","Le train dans les tunnels","El tren en los túneles","Trenino in galleria","Comboio nos túneis","Treintje door de tunnels","Trenul prin tuneluri","Потяг у тунелях","Τρενάκι στις σήραγγες","Tåget genom tunnlarna","小火车穿隧道","小火車穿隧道","トンネルをぬける電車","터널을 지나는 기차","Kereta di terowongan","Tünellerdeki tren","Tàu qua đường hầm","Trenzinho nos túneis"]},{"path":"games/tracing/index.html","title":"Grafomotorické dráhy","names":["Pencil tracing paths","Grafomotorické dráhy","Schwungübungen","Szlaczki do rysowania","Vonalvezető pályák","Chemins à tracer","Caminos para repasar","Percorsi da ripassare","Caminhos para traçar","Lijnen om over te trekken","Trasee de urmărit cu creionul","Доріжки для обведення","Διαδρομές με μολύβι","Rita längs linjerna","沿线描画","沿線描畫","線をなぞろう","선 따라 그리기","Menelusuri jalur dengan pensil","Çizgilerin üzerinden geç","Tô theo đường nét","Caminhos para contornar"]},{"path":"games/shapes/index.html","title":"Obkresľovanie tvarov","names":["Trace the shapes","Obtahování tvarů","Formen nachzeichnen","Rysowanie po konturach","Formák átrajzolása","Tracer les formes","Repasar las formas","Ripassare le forme","Traçar formas","Vormen overtrekken","Contururi de trasat","Обведи фігури","Πέρασε πάνω από τα σχήματα","Följ formernas konturer","描画图形","描畫圖形","形をなぞろう","모양 따라 그리기","Jiplak bentuk","Şekillerin üzerinden geç","Tô theo hình","Traçar formas"]},{"path":"games/dots/index.html","title":"Spájanie bodiek","names":["Connect the dots","Spojování teček","Punkte verbinden","Łączenie kropek","Pontok összekötése","Relier les points","Unir los puntos","Unisci i puntini","Ligar os pontos","Verbind de stippen","Unește punctele","З’єднай крапки","Ένωσε τις τελείες","Dra streck mellan prickarna","按序连点","按序連點","点つなぎ","점 잇기","Hubungkan titik-titik","Noktaları birleştir","Nối các chấm","Ligar os pontos"]},{"path":"games/mirror/index.html","title":"Zrkadlová hra","names":["Mirror drawing","Zrcadlové kreslení","Spiegelbilder","Rysowanie lustrzane","Tükörrajz","Dessin en miroir","Dibujo en espejo","Disegno a specchio","Desenho em espelho","Spiegeltekenen","Desen în oglindă","Дзеркальний малюнок","Κατοπτρική ζωγραφική","Spegelbilder","对称绘画","對稱繪畫","鏡うつしのお絵かき","거울 그림","Gambar cermin","Aynadaki resmi çiz","Vẽ đối xứng","Desenho em espelho"]},{"path":"games/symbol-colouring/index.html","title":"Vyfarbi podľa značiek","names":["Colour by Symbol","Vybarvování podle značek","Malen nach Symbolen","Kolorowanie według symboli","Színezés jelek szerint","Coloriage par symboles","Colorea según los símbolos","Colora con i simboli","Pinta pelos símbolos","Kleuren op symbool","Colorează după simboluri","Розфарбуй за символами","Χρωμάτισε με σύμβολα","Färglägg efter symboler","按符号涂色","依符號著色","マークを見て色ぬり","기호대로 색칠하기","Mewarnai Sesuai Simbol","Sembollere Göre Boya","Tô màu theo ký hiệu","Pinte pelos símbolos"]},{"path":"games/cut-out-puzzles/index.html","title":"Papierové puzzle","names":["Cut-out Puzzles","Vystřihni a slož","Ausschneiden und puzzeln","Wytnij i ułóż","Kivágós kirakó","Puzzles à découper","Puzles para recortar","Puzzle da ritagliare","Puzzles para recortar","Knippen en puzzelen","Decupează și potrivește","Виріж і склади","Παζλ για κόψιμο","Klipp och pussla","剪一剪，拼一拼","剪一剪，拼一拼","切って作るパズル","오려서 퍼즐 맞추기","Teka-teki Gunting dan Susun","Kes ve Birleştir","Cắt và ghép hình","Quebra-cabeças para recortar"]},{"path":"games/shape-builders/index.html","title":"Poskladaj obrázok z tvarov","names":["Build with Shapes","Skládání z tvarů","Bilder aus Formen","Układanie z kształtów","Kép formákból","Images en formes","Construye con formas","Componi con le forme","Constrói com formas","Bouwen met vormen","Construiește din forme","Склади малюнок із фігур","Φτιάξε εικόνες με σχήματα","Bygg med former","用图形拼图片","用圖形拼圖片","形を組み合わせよう","도형으로 그림 만들기","Menyusun Bentuk","Şekillerle Resim Yap","Ghép tranh bằng các hình","Monte com formas"]},{"path":"games/cutting-lines/index.html","title":"Strihaj po čiare","names":["Cut along the lines","Stříhej po čáře","Schneide entlang der Linien","Tnij wzdłuż linii","Vágj a vonal mentén","Découpe le long des lignes","Recorta por las líneas","Ritaglia lungo le linee","Recorta pelas linhas","Knip langs de lijnen","Decupează pe linii","Вирізай по лініях","Κόψε πάνω στις γραμμές","Klipp längs linjerna","沿着线剪","沿著線剪","線にそって切ろう","선을 따라 잘라요","Gunting mengikuti garis","Çizgiler boyunca kes","Cắt theo đường kẻ","Recorte pelas linhas"]},{"path":"games/paper-folding/index.html","title":"Skladaj podľa záhybov","names":["Fold along the Lines","Skládej podle ohybů","Falten entlang der Linien","Składaj wzdłuż linii","Hajtogass a vonalak mentén","Plie le long des lignes","Dobla por las líneas","Piega lungo le linee","Dobra pelas linhas","Vouw langs de lijnen","Îndoaie pe linii","Згинай за лініями","Δίπλωσε στις γραμμές","Vik längs linjerna","沿线折纸","沿線摺紙","線にそっておろう","접는 선을 따라 접어요","Lipat Mengikuti Garis","Çizgilerden Katla","Gấp theo nếp","Dobre pelas linhas"]},{"path":"games/mix-colours/index.html","title":"Zmiešaj farby","names":["Mix the Colours","Smíchej barvy","Misch die Farben","Zmieszaj kolory","Keverd a színeket","Mélange les couleurs","Mezcla los colores","Mescola i colori","Mistura as cores","Meng de kleuren","Amestecă culorile","Змішай кольори","Ανάμειξε τα χρώματα","Blanda färgerna","混合颜色","混合顏色","色をまぜよう","색을 섞어 봐요","Campur Warnanya","Renkleri Karıştır","Pha màu","Misture as cores"]},{"path":"games/one-stroke/index.html","title":"Jedným ťahom","names":["One Stroke","Jedním tahem","In einem Zug","Jednym pociągnięciem","Egyetlen vonással","D’un seul trait","De un solo trazo","Con un solo tratto","De um só traço","In één beweging","Dintr-o singură mișcare","Одним рухом","Μονοκοντυλιά","Med ett enda streck","一笔画","一筆畫","ひとふででかこう","한 번에 그려요","Satu Tarikan","Tek Çizgide","Vẽ một nét","Com um só traço"]},{"path":"games/count-match/index.html","title":"Spočítaj a zakrúžkuj číslo","names":["Count and Circle the Number","Spočítej a zakroužkuj číslo","Zähle und kreise die Zahl ein","Policz i zakreśl liczbę","Számold meg, és karikázd be a számot","Compte et entoure le nombre","Cuenta y rodea el número","Conta e cerchia il numero","Conta e rodeia o número","Tel en omcirkel het getal","Numără și încercuiește numărul","Полічи й обведи число","Μέτρησε και κύκλωσε τον αριθμό","Räkna och ringa in talet","数一数，圈出数字","數一數，圈出數字","数えて数字に丸をつけよう","세고 숫자에 동그라미","Hitung dan lingkari angka","Say ve doğru sayıyı yuvarlak içine al","Đếm và khoanh tròn số","Conte e circule o número"]},{"path":"games/dot-counting/index.html","title":"Urob toľko bodiek","names":["Make That Many Dots","Udělej tolik teček","So viele Punkte","Zrób tyle kropek","Rajzolj ennyi pöttyöt","Fais autant de points","Haz esa cantidad de puntitos","Fai tanti puntini","Faz essa quantidade de bolinhas","Maak zoveel stippen","Fă tot atâtea puncte","Намалюй стільки крапок","Κάνε τόσες τελείες","Gör så många prickar","按数字画圆点","依數字畫圓點","数字のぶんだけ点を描こう","숫자만큼 점 찍기","Buat titik sesuai angka","Sayı kadar nokta çiz","Chấm đúng số chấm","Faça bolinhas de acordo com o número"]},{"path":"games/ispy/index.html","title":"Hľadaj a spočítaj","names":["Find and Count","Hledej a spočítej","Suchen und zählen","Znajdź i policz","Keresd meg és számold meg","Cherche et compte","Busca y cuenta","Cerca e conta","Procura e conta","Zoek en tel","Caută și numără","Знайди й полічи","Βρες και μέτρησε","Hitta och räkna","找一找，数一数","找一找，數一數","探して数えよう","찾아서 세기","Cari dan hitung","Bul ve say","Tìm và đếm","Encontre e conte"]},{"path":"games/big-small/index.html","title":"Veľký a malý","names":["Big and Small","Velký a malý","Groß und klein","Duży i mały","Nagy és kicsi","Grand et petit","Grande y pequeño","Grande e piccolo","Grande e pequeno","Groot en klein","Mare și mic","Великий і малий","Μεγάλο και μικρό","Stort och litet","比大小","比大小","大きい・小さい","크다, 작다","Besar dan kecil","Büyük ve küçük","To và nhỏ","Grande e pequeno"]},{"path":"games/compare-counts/index.html","title":"Viac, menej alebo rovnako","names":["More, fewer or the same","Více, méně nebo stejně","Mehr, weniger oder gleich viel","Więcej, mniej czy tyle samo","Több, kevesebb vagy ugyanannyi","Plus, moins ou autant","Más, menos o igual","Di più, di meno o uguale","Mais, menos ou igual","Meer, minder of evenveel","Mai multe, mai puține sau tot atâtea","Більше, менше чи порівну","Περισσότερα, λιγότερα ή ίσα","Fler, färre eller lika många","更多、更少还是一样多","更多、更少還是一樣多","多い・少ない・同じ","더 많다, 더 적다, 같다","Lebih banyak, lebih sedikit, atau sama","Daha çok, daha az ya da eşit","Nhiều hơn, ít hơn hay bằng nhau","Mais, menos ou igual"]},{"path":"games/share-fairly/index.html","title":"Rozdeľ spravodlivo","names":["Share fairly","Rozděl spravedlivě","Teile gerecht","Podziel po równo","Oszd el igazságosan","Partage équitablement","Reparte por igual","Dividi in parti uguali","Divide por igual","Verdeel eerlijk","Împarte în mod egal","Поділи порівну","Μοίρασε δίκαια","Dela rättvist","平均分一分","平均分一分","同じ数に分けよう","똑같이 나누기","Bagi sama rata","Eşit paylaştır","Chia đều","Divida por igual"]},{"path":"games/measure-with-blocks/index.html","title":"Zmeraj kockami","names":["Measure with blocks","Změř kostkami","Mit Klötzchen messen","Zmierz klockami","Mérj kockákkal","Mesurer avec des cubes","Medir con bloques","Misurare con i cubetti","Medir com blocos","Met blokjes meten","Măsoară cu cuburi","Виміряй кубиками","Μέτρησε με κυβάκια","Mät med klossar","用积木测量","用積木測量","つみきではかろう","블록으로 길이 재기","Ukur dengan balok","Bloklarla ölç","Đo bằng khối vuông","Medir com blocos"]},{"path":"games/picture-graph/index.html","title":"Obrázkový graf","names":["Picture graph","Obrázkový graf","Bilderdiagramm","Wykres obrazkowy","Képes diagram","Graphique en images","Gráfico de imágenes","Grafico degli animali","Gráfico de imagens","Plaatjesgrafiek","Grafic cu imagini","Графік з малюнками","Γράφημα με εικόνες","Bilddiagram","图画统计图","圖畫統計圖","絵のグラフ","그림 그래프","Grafik gambar","Resimli grafik","Biểu đồ hình ảnh","Gráfico de figuras"]},{"path":"games/little-shop/index.html","title":"Malý obchod","names":["Little shop","Malý obchod","Kleiner Laden","Mały sklep","Kis bolt","Petit magasin","Pequeña tienda","Piccolo negozio","Lojinha","Winkeltje","Magazinul cel mic","Маленька крамничка","Μικρό μαγαζί","Lilla affären","小商店","小商店","小さなおみせ","작은 가게","Toko kecil","Küçük dükkân","Cửa hàng nhỏ","Lojinha"]},{"path":"games/dice-race/index.html","title":"Preteky s kockou","names":["Dice race","Závod s kostkou","Würfelrennen","Wyścig z kostką","Dobókockás verseny","Course aux dés","Carrera con dado","Corsa con il dado","Corrida com dado","Dobbelrace","Cursa cu zarul","Перегони з кубиком","Αγώνας με ζάρι","Tärningsrace","骰子赛跑","骰子賽跑","さいころレース","주사위 경주","Balap dadu","Zar yarışı","Đua xúc xắc","Corrida com dado"]},{"path":"games/add-or-take/index.html","title":"Pridaj alebo uber","names":["Add or take away","Přidej nebo uber","Dazu oder weg","Dodaj lub zabierz","Adj hozzá vagy vegyél el","Ajoute ou enlève","Suma o quita","Aggiungi o togli","Junta ou tira","Erbij of eraf","Adaugă sau ia","Додай або забери","Πρόσθεσε ή βγάλε","Lägg till eller ta bort","加一加，减一减","加一加，減一減","たそう、ひこう","더하거나 빼요","Tambah atau kurangi","Ekle veya çıkar","Thêm hoặc bớt","Some ou tire"]},{"path":"games/balance-scale/index.html","title":"Vyrovnaj váhu","names":["Balance the scale","Vyrovnej váhy","Bring die Waage ins Gleichgewicht","Zrównoważ wagę","Egyensúlyozd ki a mérleget","Équilibre la balance","Equilibra la balanza","Bilancia i piatti","Equilibra a balança","Breng de weegschaal in balans","Echilibrează balanța","Урівноваж терези","Ισορρόπησε τη ζυγαριά","Balansera vågen","让天平平衡","讓天平平衡","てんびんをつりあわせよう","저울 맞추기","Seimbangkan timbangan","Teraziyi dengele","Cân bằng cân","Equilibre a balança"]},{"path":"games/patterns/index.html","title":"Doplň logický rad","names":["Complete the pattern","Doplň logickou řadu","Ergänze die Bilderreihe","Uzupełnij ciąg obrazków","Egészítsd ki a képsort","Complète la suite d’images","Completa la serie","Completa la sequenza","Completa a sequência","Maak de reeks af","Completează șirul","Доповни ряд","Συμπλήρωσε το μοτίβο","Fyll i mönstret","补全图案规律","補全圖案規律","絵の続きを見つけよう","규칙에 맞게 채우기","Lengkapi pola","Örüntüyü tamamla","Điền tiếp quy luật","Complete a sequência"]},{"path":"games/odd-one-out/index.html","title":"Čo sem nepatrí?","names":["Which one doesn’t belong?","Co sem nepatří?","Was passt nicht dazu?","Co tu nie pasuje?","Melyik nem illik ide?","Quel est l’intrus ?","¿Cuál no encaja?","Qual è l’intruso?","Qual é o intruso?","Welke hoort er niet bij?","Care nu se potrivește?","Що зайве?","Ποιο δεν ταιριάζει;","Vilken passar inte in?","哪个不属于这一组？","哪個不屬於這一組？","仲間はずれはどれ？","나머지와 다른 그림은?","Mana yang tidak sekelompok?","Hangisi gruba ait değil?","Hình nào khác nhóm?","Qual não faz parte do grupo?"]},{"path":"games/sorting/index.html","title":"Zotriedenie do košíkov","names":["Sort into Baskets","Třídění do košíků","In Körbe sortieren","Sortowanie do koszyków","Válogatás kosarakba","Trie dans les paniers","Clasifica en cestas","Dividi nei cestini","Separa pelos cestos","Sorteer in mandjes","Sortează în coșuri","Сортування в кошики","Ταξινόμησε σε καλάθια","Sortera i korgar","分到不同篮子里","分到不同籃子裡","かごに分けよう","바구니에 나누어 담기","Kelompokkan ke dalam keranjang","Sepetlere ayır","Xếp vào giỏ","Separe nas cestas"]},{"path":"games/shadows/index.html","title":"Spájanie tieňov","names":["Shadow Matching","Spojování stínů","Schatten zuordnen","Dopasowywanie cieni","Árnyékpárosító","Associe les ombres","Empareja las sombras","Abbina le ombre","Encontra as sombras","Zoek de schaduwen","Potrivește umbrele","Знайди тіні","Αντιστοίχισε τις σκιές","Matcha skuggor","找影子","找影子","影を見つけよう","그림자 짝 찾기","Cocokkan bayangan","Gölgeleri eşleştir","Ghép bóng","Encontre as sombras"]},{"path":"games/whats-missing/index.html","title":"Čo chýba na obrázku?","names":["What’s missing?","Co chybí na obrázku?","Was fehlt im Bild?","Czego brakuje na obrazku?","Mi hiányzik a képről?","Que manque-t-il dans l’image ?","¿Qué falta en el dibujo?","Cosa manca nell’immagine?","O que falta na imagem?","Wat ontbreekt op de afbeelding?","Ce lipsește din imagine?","Чого бракує на малюнку?","Τι λείπει από την εικόνα;","Vad saknas i bilden?","图上少了什么？","圖上少了什麼？","何が足りない？","무엇이 빠졌을까요?","Apa yang hilang?","Ne eksik?","Thiếu gì?","O que falta na imagem?"]},{"path":"games/memory-cards/index.html","title":"Pexeso na vystrihnutie","names":["Cut-out matching cards","Pexeso k vystřižení","Memory-Karten zum Ausschneiden","Karty do gry w pary","Kivágható memóriajáték","Jeu de mémoire à découper","Juego de memoria para recortar","Carte del memory da ritagliare","Jogo da memória para recortar","Memorykaartjes om uit te knippen","Joc de memorie de decupat","Картки для гри в пари","Κάρτες μνήμης για κόψιμο","Memorykort att klippa ut","剪卡片，找对子","剪卡片，找對子","切って遊ぶ絵合わせカード","오려 쓰는 짝 맞추기 카드","Kartu pasangan untuk digunting","Kes ve eşleştir","Cắt thẻ tìm cặp","Jogo da memória para recortar"]},{"path":"games/same-picture/index.html","title":"Nájdi rovnaký obrázok","names":["Find the identical picture","Najdi stejný obrázek","Finde das gleiche Bild","Znajdź taki sam obrazek","Keresd meg az egyforma képet","Trouve l’image identique","Encuentra el dibujo idéntico","Trova l’immagine uguale","Encontra a imagem igual","Vind het gelijke plaatje","Găsește imaginea identică","Знайди однаковий малюнок","Βρες την ίδια εικόνα","Hitta samma bild","找出一模一样的图片","找出一模一樣的圖片","同じ絵を探そう","똑같은 그림 찾기","Cari gambar yang sama persis","Aynı resmi bul","Tìm hình giống hệt","Encontre a imagem igual"]},{"path":"games/matching-pairs/index.html","title":"Čo patrí k sebe?","names":["What goes together?","Co patří k sobě?","Was gehört zusammen?","Co do siebie pasuje?","Mi tartozik össze?","Qu’est-ce qui va ensemble ?","¿Qué va con qué?","Cosa va insieme?","O que combina?","Wat hoort bij elkaar?","Ce se potrivește?","Що до чого підходить?","Τι ταιριάζει μαζί;","Vad hör ihop?","哪两个是一对？","哪兩個是一對？","何と何がセットかな？","무엇끼리 어울릴까요?","Apa pasangannya?","Hangileri birbirine uyar?","Những gì đi cùng nhau?","O que combina?"]},{"path":"games/picture-sequence/index.html","title":"Čo bolo najprv?","names":["What happened first?","Co bylo nejdřív?","Was kam zuerst?","Co było najpierw?","Mi történt először?","Qu’est-il arrivé en premier ?","¿Qué pasó primero?","Cosa è successo per primo?","O que aconteceu primeiro?","Wat gebeurde eerst?","Ce s-a întâmplat mai întâi?","Що було спочатку?","Τι έγινε πρώτα;","Vad hände först?","什么先发生？","什麼先發生？","はじめに何が起きた？","무엇이 먼저였을까요?","Apa yang terjadi dulu?","Önce ne oldu?","Chuyện gì xảy ra trước?","O que aconteceu primeiro?"]},{"path":"games/picture-domino/index.html","title":"Obrázkové domino","names":["Picture dominoes","Obrázkové domino","Bilderdomino","Domino obrazkowe","Képes dominó","Dominos en images","Dominó de imágenes","Domino delle immagini","Dominó de imagens","Plaatjesdomino","Domino cu imagini","Доміно з малюнками","Ντόμινο με εικόνες","Bilddomino","图案多米诺","圖案骨牌","絵合わせドミノ","그림 도미노","Domino gambar","Resimli domino","Đô-mi-nô hình ảnh","Dominó de figuras"]},{"path":"games/picture-sudoku/index.html","title":"Mini sudoku s obrázkami","names":["Picture sudoku","Obrázkové sudoku","Bildersudoku","Sudoku obrazkowe","Képes sudoku","Sudoku en images","Sudoku de imágenes","Sudoku delle forme","Sudoku de imagens","Plaatjessudoku","Sudoku cu imagini","Судоку з малюнками","Σουντόκου με εικόνες","Bildsudoku","图形数独","圖形數獨","形のすうどく","모양 스도쿠","Sudoku gambar","Resimli sudoku","Sudoku hình ảnh","Sudoku de figuras"]},{"path":"games/find-teddy/index.html","title":"Kde je medvedík?","names":["Find the teddy","Najdi medvídka","Finde den Teddy","Znajdź misia","Találd meg a macit","Trouve le nounours","Encuentra al osito","Trova l’orsetto","Encontra o ursinho","Vind de teddybeer","Găsește ursulețul","Знайди ведмедика","Βρες το αρκουδάκι","Hitta nallen","找到小熊","找到小熊","くまのぬいぐるみをさがそう","곰 인형을 찾아요","Cari boneka beruang","Oyuncak ayıyı bul","Tìm gấu bông","Encontre o ursinho"]},{"path":"games/picture-bingo/index.html","title":"Obrázkové bingo","names":["Picture bingo","Obrázkové bingo","Bilderbingo","Bingo obrazkowe","Képes bingó","Bingo des images","Bingo de imágenes","Bingo delle immagini","Bingo de imagens","Plaatjesbingo","Bingo cu imagini","Бінго з малюнками","Μπίνγκο με εικόνες","Bildbingo","图案宾果","圖案賓果","絵のビンゴ","그림 빙고","Bingo gambar","Resimli bingo","Bingo hình ảnh","Bingo de figuras"]},{"path":"games/feelings/index.html","title":"Ako sa cíti?","names":["How do you feel?","Jak se cítíš?","Wie fühlst du dich?","Jak się czujesz?","Hogy érzed magad?","Comment te sens-tu ?","¿Cómo te sientes?","Come ti senti?","Como te sentes?","Hoe voel jij je?","Cum te simți?","Що ти відчуваєш?","Πώς νιώθεις;","Hur känner du dig?","你会有什么感受？","你會有什麼感受？","どんな気もちかな？","어떤 기분이 들까요?","Bagaimana perasaanmu?","Nasıl hissedersin?","Em cảm thấy thế nào?","Como você se sente?"]},{"path":"games/grid-memory/index.html","title":"Zapamätaj si mriežku","names":["Remember the Grid","Zapamatuj si mřížku","Merk dir das Gitter","Zapamiętaj siatkę","Jegyezd meg a rácsot","Mémorise la grille","Recuerda la cuadrícula","Ricorda la griglia","Memoriza a grelha","Onthoud het rooster","Memorează grila","Запам’ятай сітку","Θυμήσου το πλέγμα","Kom ihåg rutnätet","记住格子","記住格子","マスをおぼえよう","칸의 위치를 기억해요","Ingat Kotaknya","Kareleri Hatırla","Nhớ vị trí trong ô","Memorize a grade"]},{"path":"games/two-rules/index.html","title":"Dve pravidlá naraz","names":["Two Rules at Once","Dvě pravidla najednou","Zwei Regeln auf einmal","Dwie zasady naraz","Két szabály egyszerre","Deux règles à la fois","Dos reglas a la vez","Due regole insieme","Duas regras ao mesmo tempo","Twee regels tegelijk","Două reguli deodată","Два правила одночасно","Δύο κανόνες μαζί","Två regler samtidigt","同时满足两条规则","同時符合兩個規則","二つのルールをいっしょに","두 가지 규칙을 한꺼번에","Dua Aturan Sekaligus","İki Kural Birden","Hai quy tắc cùng lúc","Duas regras de uma vez"]},{"path":"games/weather-clothes/index.html","title":"Obleč sa podľa počasia","names":["Dress for the Weather","Oblékni se podle počasí","Zieh dich passend zum Wetter an","Ubierz się odpowiednio do pogody","Öltözz az időjáráshoz","Habille-toi selon la météo","Vístete según el tiempo","Vestiti secondo il tempo","Veste-te conforme o tempo","Kleed je naar het weer","Îmbracă-te potrivit vremii","Одягнися за погодою","Ντύσου ανάλογα με τον καιρό","Klä dig efter vädret","看天气选衣服","看天氣選衣服","お天気に合う服をえらぼう","날씨에 맞게 입어요","Berpakaian Sesuai Cuaca","Havaya Göre Giyin","Mặc đồ theo thời tiết","Vista-se de acordo com o tempo"]},{"path":"games/picture-code/index.html","title":"Obrázková šifra","names":["Picture code","Obrázková šifra","Bildercode","Szyfr obrazkowy","Képes titkosírás","Code en images","Código de dibujos","Codice delle immagini","Código de imagens","Plaatjescode","Codul imaginilor","Шифр у малюнках","Κώδικας με εικόνες","Bildkod","图画密码","圖畫密碼","絵のあんごう","그림 암호","Kode gambar","Resimli şifre","Mật mã hình ảnh","Código de figuras"]},{"path":"games/float-or-sink/index.html","title":"Pláva alebo klesne?","names":["Float or sink?","Plave, nebo klesne?","Schwimmt es oder sinkt es?","Pływa czy tonie?","Úszik vagy elsüllyed?","Ça flotte ou ça coule ?","¿Flota o se hunde?","Galleggia o affonda?","Flutua ou afunda?","Drijft het of zinkt het?","Plutește sau se scufundă?","Плаває чи тоне?","Επιπλέει ή βυθίζεται;","Flyter eller sjunker?","会浮还是会沉？","會浮還是會沉？","うくかな、しずむかな？","뜰까요, 가라앉을까요?","Mengapung atau tenggelam?","Yüzer mi, batar mı?","Nổi hay chìm?","Flutua ou afunda?"]},{"path":"games/top-view/index.html","title":"Pohľad zhora","names":["View from Above","Pohled shora","Blick von oben","Widok z góry","Nézet felülről","Vue de dessus","Vista desde arriba","Vista dall’alto","Vista de cima","Van boven gezien","Vedere de sus","Вигляд згори","Όψη από πάνω","Ovanifrån","从上面看","從上面看","上から見てみよう","위에서 바라봐요","Tampak dari Atas","Üstten Görünüm","Nhìn từ trên xuống","Vista de cima"]},{"path":"games/touch-hunt/index.html","title":"Hmatové pátranie","names":["Touch hunt","Hmatové pátrání","Fühl-Suche","Poszukiwanie dotykiem","Tapintós kereső","Le sac à deviner","Búsqueda con el tacto","Cerca con il tatto","Descobre pelo tato","Voel en zoek","Caută prin pipăit","Пошук на дотик","Ψάξε με την αφή","Känn och hitta","摸一摸，找一找","摸一摸，找一找","さわってさがそう","만져 보고 찾아요","Raba dan temukan","Dokun ve bul","Sờ và tìm","Descubra pelo tato"]},{"path":"games/first-letter/index.html","title":"Prvé písmenká","names":["First letters","První písmenka","Erste Buchstaben","Pierwsze litery","Első betűk","Premières lettres","Primeras letras","Prime lettere","Primeiras letras","Eerste letters","Primele litere","Перші літери","Πρώτα γράμματα","Första bokstaven","找开头的汉字","找開頭的漢字","はじめの文字","첫 글자","Huruf awal","İlk harfler","Chữ cái đầu","Primeiras letras"]},{"path":"games/rhymes/index.html","title":"Rýmovačky","names":["Rhymes","Rýmovačky","Reime","Rymowanki","Rímek","Rimes","Rimas","Rime","Rimas","Rijmen","Rime","Рими","Ομοιοκαταληξίες","Rim","词语押韵","詞語押韻","同じ音で終わる言葉","끝소리가 같은 낱말","Sajak","Kafiyeli sözcükler","Từ cùng vần","Rimas"]},{"path":"games/clap-syllables/index.html","title":"Vytlieskaj slabiky","names":["Clap the syllables","Vytleskej slabiky","Klatsche die Silben","Wyklaszcz sylaby","Tapsold el a szótagokat","Tape les syllabes","Da palmas por cada sílaba","Batti le mani per ogni sillaba","Bate palmas para cada sílaba","Klap de lettergrepen","Bate din palme pentru fiecare silabă","Проплескай склади","Χτύπα παλαμάκια για τις συλλαβές","Klappa stavelserna","拍手数音节","拍手數音節","ことばにあわせて手をたたこう","음절을 세어 봐요","Tepuk suku kata","Hecele ve alkışla","Vỗ tay đếm tiếng","Bata palmas e conte as sílabas"]},{"path":"games/story-maker/index.html","title":"Vymysli príbeh","names":["Make up a story","Vymysli příběh","Erfinde eine Geschichte","Wymyśl opowieść","Találj ki egy mesét","Invente une histoire","Inventa una historia","Inventa una storia","Inventa uma história","Verzin een verhaal","Inventează o poveste","Вигадай історію","Φτιάξε μια ιστορία","Hitta på en berättelse","编一个故事","編一個故事","お話をつくろう","이야기를 지어요","Buat cerita sendiri","Bir hikâye oluştur","Nghĩ ra một câu chuyện","Invente uma história"]},{"path":"games/listen-and-draw/index.html","title":"Počúvaj a kresli","names":["Listen and draw","Poslouchej a kresli","Hör zu und zeichne","Posłuchaj i narysuj","Figyelj és rajzolj","Écoute et dessine","Escucha y dibuja","Ascolta e disegna","Ouve e desenha","Luister en teken","Ascultă și desenează","Слухай і малюй","Άκου και ζωγράφισε","Lyssna och rita","听一听，画一画","聽一聽，畫一畫","聞いてかこう","듣고 그려요","Dengarkan dan gambar","Dinle ve çiz","Nghe và vẽ","Escute e desenhe"]},{"path":"games/play-the-rhythm/index.html","title":"Zahraj rytmus","names":["Play the rhythm","Zahraj rytmus","Spiel den Rhythmus","Zagraj rytm","Játszd el a ritmust","Joue le rythme","Sigue el ritmo","Suona il ritmo","Toca o ritmo","Speel het ritme","Cântă ritmul","Зіграй ритм","Παίξε τον ρυθμό","Spela rytmen","跟着图画打节拍","跟著圖畫打節拍","リズムであそぼう","리듬을 따라 해요","Mainkan iramanya","Ritmi çal","Chơi theo nhịp","Toque o ritmo"]},{"path":"games/hear-the-difference/index.html","title":"Počuj rozdiel","names":["Hear the difference","Slyš rozdíl","Hör den Unterschied","Usłysz różnicę","Halld meg a különbséget","Écoute la différence","Oye la diferencia","Senti la differenza","Ouve a diferença","Hoor het verschil","Auzi diferența","Почуй різницю","Άκου τη διαφορά","Hör skillnaden","听出不同","聽出不同","にた音を聞き分けよう","다른 소리를 들어요","Dengar perbedaannya","Farkı duy","Nghe và phân biệt","Escute a diferença"]},{"path":"games/build-a-word/index.html","title":"Zlož slovo z častí","names":["Build a word","Slož slovo z částí","Setz das Wort zusammen","Złóż słowo z części","Rakd össze a szót","Assemble le mot","Une las partes de la palabra","Componi la parola","Junta as partes da palavra","Maak het woord","Alcătuiește cuvântul","Склади слово з частин","Φτιάξε τη λέξη","Sätt ihop ordet","拼出一个词","拼出一個詞","音をつないでことばにしよう","소리를 모아 낱말을 만들어요","Rangkai kata","Sözcüğü oluştur","Ghép các tiếng thành từ","Monte a palavra"]},{"path":"games/finish-the-sentence/index.html","title":"Dokonči vetu","names":["Finish the sentence","Dokonči větu","Vervollständige den Satz","Dokończ zdanie","Fejezd be a mondatot","Complète la phrase","Completa la frase","Completa la frase","Completa a frase","Maak de zin af","Completează propoziția","Закінчи речення","Συμπλήρωσε την πρόταση","Avsluta meningen","把句子补完整","把句子補完整","文のつづきをえらぼう","문장 완성하기","Lengkapi kalimat","Cümleyi tamamla","Hoàn thành câu","Complete a frase"]},{"path":"games/say-the-opposite/index.html","title":"Povedz opak","names":["Say the opposite","Řekni opak","Sag das Gegenteil","Powiedz, co jest odwrotnością","Mondd az ellenkezőjét","Dis le contraire","Di lo contrario","Di’ il contrario","Diz o contrário","Zeg het tegenovergestelde","Spune opusul","Скажи протилежне","Πες το αντίθετο","Säg motsatsen","说出反义词","說出反義詞","はんたいをいおう","반대말을 말해요","Sebutkan lawannya","Zıddını söyle","Nói điều ngược lại","Diga o contrário"]},{"path":"games/word-under-magnifier/index.html","title":"Slovo pod lupou","names":["Word Under the Magnifier","Slovo pod lupou","Wörter unter der Lupe","Słowo pod lupą","Szó a nagyító alatt","Un mot à la loupe","Una palabra bajo la lupa","Parole sotto la lente","Palavras à lupa","Woorden onder de loep","Cuvântul sub lupă","Слово під лупою","Λέξεις στον μεγεθυντικό φακό","Ord under lupp","放大镜找汉字","放大鏡找漢字","ことばを よく見よう","낱말 돋보기","Kata dalam Kaca Pembesar","Büyüteç Altındaki Sözcük","Soi từ bằng kính lúp","Palavras na lupa"]}]) {
+              const item = document.createElement("li");
+              const link = document.createElement("a");
+              const url = localizedUrl(new URL(game.path, catalog), language);
+              link.href = url.href;
+              link.textContent = language === "sk" ? game.title : game.names[column];
+              link.setAttribute("data-no-l10n", "");
+              if (url.pathname === currentPage) link.setAttribute("aria-current", "page");
+              item.appendChild(link);
+              menu.appendChild(item);
+            }
+            menu.closest("details").hidden = false;
+          }
+          picker.closest(".language-bar").hidden = false;
+          picker.addEventListener("change", () => {
+            const chosen = picker.value;
+            if (Object.hasOwn(languages, chosen) && chosen !== language) {
+              remember(chosen);
+              location.replace(localizedUrl(location.href, chosen).href);
+            }
+          });
+          document.querySelectorAll("a.game[href], a.catalog-link[href], a.site-brand[href]").forEach(link => {
+            link.href = localizedUrl(link.href, language).href;
+          });
+          if (language === "sk") return;
+          document.title = translate(document.title);
+          const meta = document.querySelector('meta[name="description"]');
+          if (meta) meta.content = translate(meta.content);
+          translateTree(document.body);
+          const observer = new MutationObserver(records => {
+            for (const record of records) record.addedNodes.forEach(translateTree);
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+          window.addEventListener("beforeprint", () => translateTree(document.body));
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="icon-apple" viewBox="0 0 64 64">
+        <path d="M32 20C20 12 10 24 10 38c0 14 12 22 22 22s22-8 22-22c0-14-10-26-22-18Z" fill="#ef4444" stroke="#991b1b" stroke-width="3"/>
+        <path d="M32 20Q36 8 44 4" fill="none" stroke="#78350f" stroke-width="3.5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-arrow" viewBox="0 0 64 64">
+        <path d="M8 47 47 11m-1 0h10v10" fill="none" stroke="#bc5557" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="m17 39-8-1-5 5 8 1m0 0 1 8-5 5-1-9" fill="#dd9a74" stroke="#996749" stroke-width="2.5"/>
+      </symbol>
+      <symbol id="icon-ball" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="24" fill="#f3b776" stroke="#87573c" stroke-width="3"/>
+        <path d="M14 16c11 7 18 22 19 40M8 35c15-12 34-15 47-10M43 10c-5 7-7 18-4 27 3 7 8 9 12 9" fill="none" stroke="#a5694a" stroke-width="3"/>
+      </symbol>
+      <symbol id="icon-bear" viewBox="0 0 64 64">
+        <circle cx="15" cy="15" r="9" fill="#b88760" stroke="#795537" stroke-width="2.5"/><circle cx="49" cy="15" r="9" fill="#b88760" stroke="#795537" stroke-width="2.5"/><ellipse cx="32" cy="34" rx="23" ry="21" fill="#c2946d" stroke="#795537" stroke-width="3"/><ellipse cx="32" cy="45" rx="13" ry="9" fill="#e5bd8d"/><ellipse cx="32" cy="41" rx="5" ry="4" fill="#72523c"/><circle cx="24" cy="31" r="2.5"/><circle cx="40" cy="31" r="2.5"/>
+      </symbol>
+      <symbol id="icon-bed" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="22" width="10" height="33" rx="3" fill="#9e795c"/><rect x="16" y="35" width="43" height="12" rx="5" fill="#90bad1"/><rect x="15" y="29" width="14" height="7" rx="3" fill="#fff6dd"/><path d="M15 48h43v7m-37-7v7m8-20h26" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-bee" viewBox="0 0 64 64">
+        <ellipse cx="24" cy="20" rx="10" ry="7" transform="rotate(-25 24 20)" fill="#d9f2f3" stroke="#59777b" stroke-width="2.5"/>
+        <ellipse cx="42" cy="20" rx="10" ry="7" transform="rotate(25 42 20)" fill="#d9f2f3" stroke="#59777b" stroke-width="2.5"/>
+        <ellipse cx="33" cy="38" rx="19" ry="17" fill="#ffd45c" stroke="#5d4a2d" stroke-width="3"/>
+        <path d="M25 24c-4 8-4 19 0 27m16-27c4 8 4 19 0 27" fill="none" stroke="#6a512d" stroke-width="5"/>
+        <circle cx="27" cy="36" r="2" fill="#302b2a"/><circle cx="39" cy="36" r="2" fill="#302b2a"/>
+      </symbol>
+      <symbol id="icon-beetle" viewBox="0 0 64 64">
+        <ellipse cx="32" cy="36" rx="14" ry="17" fill="#9683ab" stroke="#625074" stroke-width="3"/><path d="M32 19v33m-10-30-7-8m3 19-9-4m11 15-8 6m30-28 7-8m-3 19 9-4m-11 15 8 6" stroke="#625074" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="16" r="7" fill="#625074"/>
+      </symbol>
+      <symbol id="icon-bell" viewBox="0 0 64 64">
+        <path d="M14 42q6-7 6-20a12 12 0 0 1 24 0q0 13 6 20l5 6H9Z" fill="#f8c96d" stroke="#ae813a" stroke-width="3" stroke-linejoin="round"/><path d="M27 49a5 5 0 0 0 10 0" fill="#b99145" stroke="#88662d" stroke-width="2.5"/><path d="M28 10q4-8 8 0" fill="none" stroke="#ae813a" stroke-width="2.5"/>
+      </symbol>
+      <symbol id="icon-belly" viewBox="0 0 64 64">
+        <path d="M14 7c6 5 7 11 6 16L10 48c-2 8 15 11 22 11s24-3 22-11L44 23c-1-5 0-11 6-16" fill="#f3c3a6" stroke="#925f56" stroke-width="3" stroke-linecap="round"/>
+        <path d="M11 8h42l-9 18H20Z" fill="#a9c7e0" stroke="#527491" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M32 40q-3 3 0 5" fill="none" stroke="#925f56" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-blackbird" viewBox="0 0 64 64">
+        <path d="M20 36 6 27l4 18 14 2" fill="#49596a" stroke="#2f3b49" stroke-width="3"/>
+        <path d="M47 18c-8-8-17-1-18 10-2 5-11 4-10 13 1 14 24 16 33 3 5-7 4-18-5-26Z" fill="#49596a" stroke="#2f3b49" stroke-width="3"/>
+        <path d="m52 27 9 3-8 5" fill="#edb44e" stroke="#9a663c" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M34 53v7m9-8v8" stroke="#9a663c" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="45" cy="26" r="3.5" fill="#f7d375"/>
+        <circle cx="45" cy="26" r="1.7" fill="#273344"/>
+        <path d="M26 43c6-8 13-9 21-8" fill="none" stroke="#758394" stroke-width="2.5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-blanket" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="11" width="47" height="42" rx="5" fill="#d4b9e7"/><path d="M8 23h47M8 37h47m-31-14v14m16-14v14m-7 0v16m-3-42v12" fill="none"/><path d="M15 53v5m9-5v5m8-5v5m8-5v5m8-5v5" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-boat" viewBox="0 0 64 64">
+        <path d="M32 7v36M29 11 11 39h18Z" fill="#f9c766" stroke="#995d2e" stroke-width="3" stroke-linejoin="round"/><path d="m36 16 16 23H36Z" fill="#c3e2ef" stroke="#557588" stroke-width="3" stroke-linejoin="round"/><path d="M6 43h52l-8 13H15Z" fill="#8bb7d8" stroke="#375d82" stroke-width="3" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-book" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M32 17Q19 8 7 14v37q12-6 25 2 13-8 25-2V14q-12-6-25 3Z" fill="#fff2cc"/><path d="M32 17v36M13 22l12 3m-12 4 12 3m13-7 12-3m-12 10 12-3" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-bread" viewBox="0 0 64 64">
+        <path d="M14 53V29q-9-5-8-12 2-9 26-9 23 0 26 9 1 7-8 12v24Z" fill="#e6a16d" stroke="#9b633a" stroke-width="3"/><path d="M20 47V27q-8-4-7-8 2-5 19-5t19 5q1 4-7 8v20Z" fill="#fff1c7"/>
+      </symbol>
+      <symbol id="icon-bridge" viewBox="0 0 64 64">
+        <path d="M6 38h52v15H45c0-13-26-13-26 0H6Z" fill="#e8b884" stroke="#865b47" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M6 37V22m52 15V22M6 25h52m-43 2v8m11-8v8m12-8v8m11-8v8" stroke="#865b47" stroke-width="3" stroke-linecap="round"/>
+        <path d="M5 58q7 4 14 0 7 4 14 0 7 4 14 0 7 4 12 0" fill="none" stroke="#6aa4bd" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-broom" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M45 7 29 36" fill="none" stroke-width="5"/><path d="M21 29q6 0 13 7l-9 22q-9 0-18-8Z" fill="#edc073"/><path d="m17 34 15 8m-13 0-7 10m12-8-6 11" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-brush" viewBox="0 0 64 64">
+        <g transform="rotate(-20 32 32)" stroke="#7c553e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 30h20l15-12 10 1q5 4 1 8L38 38H13q-4 0-4-8Z" fill="#ecae73"/>
+          <path d="M12 38v9m5-9v11m5-11v11m5-11v11m5-11v8m5-8v7" fill="none"/>
+          <path d="M17 33h13" stroke="#f7d1a1"/>
+        </g>
+      </symbol>
+      <symbol id="icon-burrow" viewBox="0 0 64 64">
+        <path d="M5 51c1-18 10-30 27-31 17 1 26 13 27 31Z" fill="#b6926c" stroke="#775941" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M18 51c0-11 6-19 14-19s14 8 14 19" fill="#61493f" stroke="#775941" stroke-width="3"/>
+        <path d="M9 43 5 36m8 1-4-10m42 12 5-10m-2 15 6-6" stroke="#6a9c56" stroke-width="3" stroke-linecap="round"/>
+        <path d="M4 54h56" stroke="#6a9c56" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-candle" viewBox="0 0 64 64">
+        <path d="M21 32q5 5 10 0 4-3 12 0v23H21Z" fill="#f4b5bc" stroke="#b47482" stroke-width="3"/><path d="M32 24q-11-4 0-18 11 14 0 18Z" fill="#ffd574" stroke="#b48740" stroke-width="2.5"/><path d="M32 24v8M13 56h38" stroke="#8b6660" stroke-width="2.5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-candy" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 27 5 19v24l13-7m30-9 11-8v24l-13-7" fill="#b2d6e9"/><ellipse cx="32" cy="31" rx="17" ry="14" fill="#e894a7"/><path d="m24 19 15 23m-5-25 11 19" fill="none" stroke="#fbc7c4"/></g>
+      </symbol>
+      <symbol id="icon-car" viewBox="0 0 64 64">
+        <rect x="8" y="28" width="48" height="20" rx="6" fill="#3b82f6" stroke="#1d4ed8" stroke-width="3"/>
+        <path d="M16 28 L24 14 H40 L48 28 Z" fill="#93c5fd" stroke="#1d4ed8" stroke-width="3"/>
+        <circle cx="20" cy="48" r="6" fill="#334155"/><circle cx="44" cy="48" r="6" fill="#334155"/>
+      </symbol>
+      <symbol id="icon-castle" viewBox="0 0 64 64">
+        <rect x="14" y="24" width="36" height="30" fill="#e2e8f0" stroke="#475569" stroke-width="3"/>
+        <path d="M14 24 V16 H22 V24 H28 V16 H36 V24 H42 V16 H50 V24" fill="none" stroke="#475569" stroke-width="3"/>
+        <rect x="26" y="38" width="12" height="16" rx="6" fill="#64748b"/>
+      </symbol>
+      <symbol id="icon-cat" viewBox="0 0 64 64">
+        <path d="m13 29 2-19 16 11 17-11 3 20c4 17-5 27-19 27S11 46 13 29Z" fill="#f4c27a" stroke="#66513d" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="25" cy="34" r="2.5" fill="#302b2a"/><circle cx="39" cy="34" r="2.5" fill="#302b2a"/>
+        <ellipse cx="32" cy="42" rx="4" ry="3" fill="#e98f91"/>
+      </symbol>
+      <symbol id="icon-chair" viewBox="0 0 64 64">
+        <path d="M15 54 18 9h21v23h9v4l-4 18m-23-16-2 16m21-16v16" fill="none" stroke="#866140" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 10h18v17H18Zm0 22h29v6H18Z" fill="#dfb689" stroke="#866140" stroke-width="2.5"/>
+      </symbol>
+      <symbol id="icon-cheese" viewBox="0 0 64 64">
+        <path d="m9 21 43-12 4 40-43 8Z" fill="#ffd45c" stroke="#957032" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="24" cy="29" r="4" fill="#efc14d"/><circle cx="39" cy="20" r="3" fill="#efc14d"/>
+      </symbol>
+      <symbol id="icon-chopsticks" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 50 52 12m-37 43 42-35" fill="none" stroke="#ae7850" stroke-width="5"/><path d="m47 16 5-4m0 13 5-5" fill="none" stroke="#e5af68" stroke-width="4"/></g>
+      </symbol>
+      <symbol id="icon-cloud" viewBox="0 0 64 64">
+        <path d="M18 44 C10 44 8 32 18 30 C16 20 28 16 34 22 C40 16 52 20 50 30 C58 32 58 44 48 44 Z" fill="#bfdbfe" stroke="#3b82f6" stroke-width="3"/>
+      </symbol>
+      <symbol id="icon-comb" viewBox="0 0 64 64">
+        <g transform="rotate(-20 32 32)" stroke="#685485" stroke-width="3.3" stroke-linecap="round">
+          <path d="M12 28v17m7-17v17m7-17v17m7-17v17m7-17v17m7-17v17m7-17v17" fill="none"/>
+          <rect x="7" y="19" width="51" height="11" rx="5" fill="#cbb4eb"/>
+        </g>
+      </symbol>
+      <symbol id="icon-cow" viewBox="0 0 64 64">
+        <path d="M15 22c-9-2-10-10-10-14 8 2 12 6 15 11m29 3c9-2 10-10 10-14-8 2-12 6-15 11" fill="#e9d5a4" stroke="#6c5554" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M19 22c-8-3-13-1-15 4 4 8 9 10 16 7m24-11c8-3 13-1 15 4-4 8-9 10-16 7" fill="#e5adab" stroke="#6c5554" stroke-width="2.5"/>
+        <ellipse cx="32" cy="35" rx="17" ry="21" fill="#fffae8" stroke="#6c5554" stroke-width="3"/>
+        <path d="M33 16c11 1 17 11 16 21-7 2-12-4-11-8 0-4-3-6-5-13Z" fill="#8c7470"/>
+        <ellipse cx="32" cy="46" rx="15" ry="9" fill="#f0b5b0" stroke="#6c5554" stroke-width="2"/>
+        <path d="M24 31h.1m15 0h.1m-13 15h.1m11 0h.1" stroke="#53464a" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-crab" viewBox="0 0 64 64">
+        <ellipse cx="32" cy="36" rx="18" ry="12" fill="#ef4444" stroke="#b91c1c" stroke-width="3"/>
+        <path d="M16 32 C8 24 10 12 18 16" fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
+        <path d="M48 32 C56 24 54 12 46 16" fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="26" cy="32" r="2.5" fill="#fff"/><circle cx="26" cy="32" r="1.5" fill="#000"/>
+        <circle cx="38" cy="32" r="2.5" fill="#fff"/><circle cx="38" cy="32" r="1.5" fill="#000"/>
+      </symbol>
+      <symbol id="icon-dog" viewBox="0 0 64 64">
+        <path d="M16 25c0-11 9-17 16-17s16 6 16 17v17c0 11-7 16-16 16s-16-5-16-16Z" fill="#f0d7b6" stroke="#604b3d" stroke-width="3"/>
+        <circle cx="25" cy="33" r="2.5" fill="#302b2a"/><circle cx="39" cy="33" r="2.5" fill="#302b2a"/>
+        <ellipse cx="32" cy="42" rx="5" ry="3.5" fill="#604b3d"/>
+      </symbol>
+      <symbol id="icon-dragon" viewBox="0 0 64 64">
+        <path d="m32 28-9-14-2 17-14-2 12 13h15" fill="#c3a7d6" stroke="#69597d" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M28 48C15 54 10 45 5 50c7 12 22 10 34 3 8-5 8-12 8-17l11-1c6-2 4-10-1-10h-6c-1-6-5-9-11-8l-7-8-2 13c-7 6-6 16-3 26Z" fill="#a1c585" stroke="#58764d" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="44" cy="25" r="2" fill="#334640"/>
+        <path d="M47 36h9" stroke="#58764d" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-duck" viewBox="0 0 64 64">
+        <path d="M20 36c-3-16 4-25 15-25 8 0 14 6 14 14l9 5-10 5v4c0 13-9 18-22 18-10 0-17-5-19-13l-2-10Z" fill="#ffd865" stroke="#a27331" stroke-width="3" stroke-linejoin="round"/><path d="m49 25 9 5-10 5" fill="#f8894a" stroke="#a27331" stroke-width="3" stroke-linejoin="round"/><circle cx="38" cy="23" r="2.7" fill="#39302a"/><path d="M21 44q7 8 15 0" fill="none" stroke="#a27331" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-ear" viewBox="0 0 64 64">
+        <path d="M42 10c9 4 12 13 10 22-1 7-7 10-11 16-3 5-6 10-14 10-7 0-10-4-10-10 0-4 3-7 3-12-1-4-6-6-5-14C16 11 30 5 42 10Z" fill="#f2ba9d" stroke="#925c55" stroke-width="3"/>
+        <path d="M24 26c-1-10 15-14 20-4 5 10-5 14-10 21m-5-8c9-1 9-8 3-9" fill="none" stroke="#a4685e" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-elephant" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 32q-5 12 7 14l4 10h9l-1-11h13l2 11h8l-1-22q14 6 13 14-6 3-8-3l-5 4q8 14 13 6 5-8-1-26C58 11 40 10 32 18 16 14 10 20 8 32Z" fill="#a4c7d0"/><path d="M34 20q-17-9-20 9-1 14 12 14l9-9Z" fill="#c8dfe0"/><circle cx="49" cy="24" r="2.6" fill="#43565a" stroke="none"/></g>
+      </symbol>
+      <symbol id="icon-feather" viewBox="0 0 64 64">
+        <path d="M12 51q0-13 14-28 12-13 31-15 1 20-18 34l-11 3 1-5-7 8Z" fill="#aed2de" stroke="#6a96a4" stroke-width="2.5"/><path d="M7 57 48 17M29 36l-4-8m10 1-2-6m-4 13 9 2m0-10 8 3" stroke="#638f9c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-fence" viewBox="0 0 64 64">
+        <path d="M5 25h54v8H5zm0 18h54v8H5z" fill="#bd936d" stroke="#795734" stroke-width="2"/><path d="M9 56V16l5-7 5 7v40Zm18 0V16l5-7 5 7v40Zm18 0V16l5-7 5 7v40Z" fill="#e1bb8d" stroke="#795734" stroke-width="2" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-fire" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M32 5q11 15 13 23l7-5q7 13 4 24-7 15-24 15S7 51 8 39q1-9 8-18l5 7Z" fill="#f39466"/><path d="M30 32q18 16 12 24-11 11-22-1-4-7 4-15l3 5Z" fill="#fbe18a"/></g>
+      </symbol>
+      <symbol id="icon-fish" viewBox="0 0 64 64">
+        <path d="M10 32c8-13 25-18 39-7l9-8v30l-9-8C35 50 18 45 10 32Z" fill="#8fd0dc" stroke="#4d737a" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="24" cy="29" r="2.5" fill="#26353a"/>
+      </symbol>
+      <symbol id="icon-flower" viewBox="0 0 64 64">
+        <path d="M31 34v24" stroke="#5e9a62" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="32" cy="18" r="8" fill="#f7a8b8"/><circle cx="44" cy="25" r="8" fill="#f7a8b8"/>
+        <circle cx="39" cy="38" r="8" fill="#f7a8b8"/><circle cx="25" cy="38" r="8" fill="#f7a8b8"/>
+        <circle cx="20" cy="25" r="8" fill="#f7a8b8"/><circle cx="32" cy="28" r="8" fill="#ffd45c" stroke="#b48532" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-foot" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M24 30q-7 11-5 19 1 11 13 10 9-1 13-15l4-17-17-6Z" fill="#f1bd91"/><g fill="#f1bd91"><circle cx="43" cy="15" r="7"/><circle cx="31" cy="14" r="5"/><circle cx="22" cy="17" r="4"/><circle cx="16" cy="23" r="3.6"/><circle cx="14" cy="31" r="3"/></g></g>
+      </symbol>
+      <symbol id="icon-forest" viewBox="0 0 64 64">
+        <g fill="#82b775" stroke="#385e40" stroke-width="2.3" stroke-linejoin="round">
+          <path d="M15 9 5 28h5L3 43h24L20 28h5Z"/><path d="M48 15 40 29h4l-8 16h24l-8-16h4Z"/>
+          <path d="M31 6 18 28h6l-9 19h32l-9-19h6Z" fill="#629b6d"/>
+        </g>
+        <path d="M15 44v10m16-7v12m17-14v10" stroke="#825a42" stroke-width="4" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-fox" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 29 9 8l17 15h12L55 8l2 22-13 15-12 10-12-10Z" fill="#ec9d65"/><path d="M8 33q16 0 24 15 9-15 24-15L32 55Z" fill="#fff1d2"/><path d="M24 35h.1m16 0h.1" stroke-width="4.4"/><ellipse cx="32" cy="46" rx="4.8" ry="3" fill="#66473e"/></g>
+      </symbol>
+      <symbol id="icon-frog" viewBox="0 0 64 64">
+        <circle cx="20" cy="18" r="9" fill="#88c962" stroke="#487834" stroke-width="3"/>
+        <circle cx="44" cy="18" r="9" fill="#88c962" stroke="#487834" stroke-width="3"/>
+        <ellipse cx="32" cy="38" rx="22" ry="18" fill="#9de072" stroke="#487834" stroke-width="3"/>
+        <circle cx="20" cy="17" r="3" fill="#20252d"/><circle cx="44" cy="17" r="3" fill="#20252d"/>
+      </symbol>
+      <symbol id="icon-glue" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 22h24v31q0 7-7 7H27q-7 0-7-7Z" fill="#e8f1f1"/><path d="M22 12h20v11H22Z" fill="#89b99b"/><path d="M26 12V6h12v6M19 34h26v14H19Z" fill="#b2d9a4"/><path d="M32 38q-6 6 0 8 6-2 0-8" fill="#fff" stroke="none"/></g>
+      </symbol>
+      <symbol id="icon-goat" viewBox="0 0 64 64">
+        <path d="M24 23c-6-14 0-19 4-16l3 13m1 0 5-13c5-2 8 4 5 15" fill="#b28f63" stroke="#604c3a" stroke-width="2.5"/><path d="M18 27 5 20q-1 16 15 14m26-7 13-7q1 16-15 14" fill="#ddc7a7" stroke="#604c3a" stroke-width="2.5"/><path d="M32 18q14 0 16 18l-7 14-5 10-8-9q-12-6-12-17t16-16" fill="#f7efd8" stroke="#604c3a" stroke-width="2.5"/><circle cx="25" cy="33" r="2.5"/><circle cx="40" cy="33" r="2.5"/><ellipse cx="33" cy="42" rx="5" ry="3" fill="#866954"/>
+      </symbol>
+      <symbol id="icon-grass" viewBox="0 0 64 64">
+        <path d="M5 52h54M15 51 7 36q10 3 16 15l-3-28q9 7 12 28L35 9q10 17 4 42L56 28q2 11-8 23l10-9" fill="#a7d58f" stroke="#579346" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-hair" viewBox="0 0 64 64">
+        <path d="M19 16q16-15 32 0l3 21-5 16H14l-3-17q0-14 8-20Z" fill="#936743" stroke="#64442e" stroke-width="2.5"/><path d="M21 30q8-1 13-11 3 12 10 12v9q0 14-12 15-12-1-12-15Z" fill="#f9d6b3" stroke="#a77b58" stroke-width="2"/><path d="M17 28q1-11 15-15m17 13q0-8-10-12" fill="none" stroke="#bea07d" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-hammer" viewBox="0 0 64 64">
+        <path d="m28 27 8 3-12 28-8-3Z" fill="#d89d6c" stroke="#805231" stroke-width="3" stroke-linejoin="round"/>
+        <path d="m12 9 32 9 8 7-4 7-12-3-6-5-10-3-4 3-10-3Z" fill="#b6c7d8" stroke="#475569" stroke-width="3" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-hand" viewBox="0 0 64 64">
+        <path d="M19 53 9 33q-3-6 1-8 4-2 9 7V12q0-4 4-4t4 4v13-17q0-4 4-4t4 4v16-12q0-4 4-4t4 4v14-9q0-4 4-4t4 4v20q0 16-11 19Z" fill="#f6c99f" stroke="#a97251" stroke-width="2.5" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-hat" viewBox="0 0 64 64">
+        <path d="M15 38 21 14c8 3 14 3 22 0l6 24" fill="#937ab1" stroke="#594b75" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M17 32h30l2 7H15z" fill="#e0a6af"/>
+        <ellipse cx="32" cy="43" rx="27" ry="8" fill="#937ab1" stroke="#594b75" stroke-width="3"/>
+      </symbol>
+      <symbol id="icon-head" viewBox="0 0 64 64">
+        <path d="M32 10c-13 0-22 8-22 23s10 24 22 24 22-10 22-24-9-23-22-23Z" fill="#efb897" stroke="#6f5149" stroke-width="3"/>
+        <path d="M10 28c3-11 13-8 21-15 6 8 15 6 23 15 0-12-8-22-22-22S10 15 10 28Z" fill="#a57258" stroke="#6f5149" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M24 34h.1m16 0h.1m-13 10q5 5 10 0" fill="none" stroke="#6f5149" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-heart" viewBox="0 0 64 64">
+        <path d="M32 55C23 48 4 36 4 23a14 14 0 0 1 28-3 14 14 0 0 1 28 3c0 13-19 25-28 32Z" fill="#f389a1" stroke="#a64b69" stroke-width="3"/>
+      </symbol>
+      <symbol id="icon-hen" viewBox="0 0 64 64">
+        <path d="M9 28q-6-4-5-12 8 2 16 13l16-4 5-10q5-7 13 0l1 17q0 19-21 19Q13 50 9 28Z" fill="#f5e3ca" stroke="#916c4e" stroke-width="2.5"/><path d="M41 15q-5-10 0-10 4 0 4 6 2-11 6-7 3 2 0 9" fill="#e3676b" stroke="#a64249" stroke-width="2"/><path d="m55 19 7 4-7 4m-29 24-3 7m18-7 2 7" fill="none" stroke="#ba7b36" stroke-width="3"/><circle cx="49" cy="20" r="2.5"/><path d="M22 35q8 8 17 0" fill="none" stroke="#b38a66" stroke-width="3"/>
+      </symbol>
+      <symbol id="icon-honey" viewBox="0 0 64 64">
+        <rect x="14" y="18" width="36" height="41" rx="8" fill="#f5bd54" stroke="#95662a" stroke-width="3"/><path d="M12 13h40v9H12Z" fill="#bf8662" stroke="#95662a" stroke-width="2.5"/><ellipse cx="32" cy="41" rx="13" ry="11" fill="#fff5c9"/><path d="M32 32q-15 16 0 16t0-16Z" fill="#f5bc46"/>
+      </symbol>
+      <symbol id="icon-horse" viewBox="0 0 64 64">
+        <path d="M17 56q-3-22 0-37 2-12 20-10l8 8-8 31 3 8Z" fill="#8f6648" stroke="#66492f" stroke-width="2.5"/><path d="m24 15 2-11q9 2 9 12l9 6 4 10 10 6q4 6-3 11h-15l-10-9-7 10-1-24Z" fill="#c9986d" stroke="#66492f" stroke-width="2.5"/><circle cx="38" cy="26" r="2.5"/><circle cx="52" cy="42" r="2.3"/>
+      </symbol>
+      <symbol id="icon-house" viewBox="0 0 64 64">
+        <path d="M12 31h40v25H12Z" fill="#ffd797" stroke="#845d3f" stroke-width="3"/><path d="M7 32 32 8l25 24Z" fill="#d78671" stroke="#845044" stroke-width="3" stroke-linejoin="round"/><path d="M27 56V40h10v16" fill="#fff4db" stroke="#845d3f" stroke-width="3"/><path d="M17 39h5v7h-5zM42 39h5v7h-5z" fill="#557588"/>
+      </symbol>
+      <symbol id="icon-key" viewBox="0 0 64 64">
+        <path d="M25 33a13 13 0 1 1 9-8l23 21-6 7-5-4-4 4-6-6 4-4Z" fill="#f7c767" stroke="#8c653d" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="22" cy="21" r="4.7" fill="#fff9e9" stroke="#8c653d" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-kiss" viewBox="0 0 64 64">
+        <path d="M7 40q11-3 21-10 5-3 10 1 5-5 10-1l8 10Q44 53 31 53 16 53 7 40Z" fill="#e87f96" stroke="#a84663" stroke-width="3"/><path d="M13 40q20 7 36 0" stroke="#a84663" stroke-width="2" fill="none"/><path d="M49 19q-12-8-6-12 3-3 6 2 3-5 6-2 6 4-6 12Z" fill="#ec698a"/>
+      </symbol>
+      <symbol id="icon-lake" viewBox="0 0 64 64">
+        <path d="M5 33Q12 20 26 28q9 6 20 1 10-4 15 9 3 12-13 17-24 7-39-3-11-7-4-19Z" fill="#a4d9e6" stroke="#446f87" stroke-width="2.3"/>
+        <path d="M13 31V18m4 10 4-13M48 30l-1-14m5 15 5-12" fill="none" stroke="#4c8953" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M15 42q5-3 9 0t9 0m4 6q4-3 8 0t8 0" fill="none" stroke="#5ca6c3" stroke-width="2.3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-leaf" viewBox="0 0 64 64">
+        <path d="M13 49c-7-16 6-34 43-39-3 31-20 47-40 42" fill="#a4ce7f" stroke="#487945" stroke-width="3" stroke-linejoin="round"/><path d="M9 56 44 23M25 41l-2-12m9 5h12" fill="none" stroke="#487945" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-magnifier" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="26" cy="24" r="16" fill="#c5deeb"/><circle cx="26" cy="24" r="11" fill="#e8f5fa"/><path d="M38 37 52 52" fill="none" stroke="#96755b" stroke-width="7"/><path d="M19 24q0-6 7-8" stroke="#fff" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-man" viewBox="0 0 64 64">
+        <path d="M14 60V48c0-8 8-13 18-13s18 5 18 13v12Z" fill="#98aacb" stroke="#506784" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="32" cy="23" r="15" fill="#efba97" stroke="#6b514c" stroke-width="3"/>
+        <path d="M17 22c-2-9 3-16 15-16 11 0 16 6 15 16l-9-6-12 3-8 3Z" fill="#9b705f" stroke="#6b514c" stroke-width="2.5"/>
+        <path d="M26 24h.1m12 0h.1m-10 7q4 4 8 0" stroke="#6b514c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="m32 42-5 10 5 5 5-5Z" fill="#c37176" stroke="#975c6f" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-map" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 17-6 18 5 17-5v40l-17 6-18-5-17 6Z" fill="#f8e8b1"/><path d="M23 9v41m18-36v41M10 43q9-8 14-13 5-5 11 0t15-6" stroke="#83a782" fill="none" stroke-dasharray="3 4"/><circle cx="51" cy="21" r="4" fill="#d77b73"/></g>
+      </symbol>
+      <symbol id="icon-mat" viewBox="0 0 64 64">
+        <path d="m13 18 32-1 13 29-51 1Z" fill="#c6a173" stroke="#936c3a" stroke-width="3"/><path d="m13 44 6-23m2 23 5-23m4 23 3-23m6 23 1-23m10 23-3-23" fill="none" stroke="#b58a58" stroke-width="2.5"/><path d="M8 49v5m8-5v5m8-5v5m8-5v5m8-5v5m8-5v5m8-5v5" stroke="#936c3a" stroke-width="2.5"/>
+      </symbol>
+      <symbol id="icon-milk" viewBox="0 0 64 64">
+        <path d="M15 25 22 9h23l5 16v32H15Z" fill="#ecf3f9" stroke="#7893a9" stroke-width="3"/><path d="M15 25h35M22 9v16h16l7-16" fill="none" stroke="#7893a9" stroke-width="2"/><path d="M32 31q-15 18 0 18t0-18Z" fill="#9dc8e0" stroke="#6f9fbf" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-moon" viewBox="0 0 64 64">
+        <path d="M45 9c-15-3-29 6-34 19-6 16 6 32 22 32 13 0 22-8 25-18-8 4-20 1-25-7-6-10-1-21 12-26Z" fill="#f6db86" stroke="#926e42" stroke-width="3" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-mountain" viewBox="0 0 64 64">
+        <path d="M4 54 26 12l10 16 8-11 16 37Z" fill="#a6b8bc" stroke="#556f76" stroke-width="3" stroke-linejoin="round"/>
+        <path d="m19 26 7-14 8 14-5-2-3 6-3-6Zm19 0 6-9 5 10-4-2-2 3Z" fill="#fffdf0" stroke="#556f76" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M10 54h48" fill="none" stroke="#6f9969" stroke-width="4" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-mouse" viewBox="0 0 64 64">
+        <circle cx="22" cy="18" r="12" fill="#f3c7d0" stroke="#715965" stroke-width="3"/>
+        <circle cx="43" cy="20" r="11" fill="#f3c7d0" stroke="#715965" stroke-width="3"/>
+        <path d="M13 38c1-13 11-20 22-18 13 2 19 13 14 24-4 9-18 14-29 8-6-3-9-8-7-14Z" fill="#f3e7e9" stroke="#715965" stroke-width="3"/>
+        <circle cx="28" cy="37" r="2.5" fill="#302b2a"/><circle cx="42" cy="37" r="2.5" fill="#302b2a"/>
+      </symbol>
+      <symbol id="icon-mouth" viewBox="0 0 64 64">
+        <path d="M5 32q14-2 21-10 6-5 12 0 5-5 11 1l10 9Q46 51 32 51T5 32Z" fill="#f78f9d" stroke="#a94659" stroke-width="3"/><path d="M12 32q10 4 20 3 10 1 20-3-9 9-20 9t-20-9" fill="#912d47"/>
+      </symbol>
+      <symbol id="icon-mug" viewBox="0 0 64 64">
+        <path d="M44 19q14-1 14 12 0 11-14 12v-8q7 0 7-5t-7-5Z" fill="#f6a379" stroke="#965d4e" stroke-width="2.5"/>
+        <path d="M9 16h37v29q0 9-8 9H17q-8 0-8-9Z" fill="#f6a379" stroke="#965d4e" stroke-width="2.5"/>
+        <ellipse cx="27.5" cy="16" rx="18.5" ry="5" fill="#ffe0bd" stroke="#965d4e" stroke-width="2.5"/>
+        <path d="M14 44q12 4 26 0" fill="none" stroke="#f8c39b" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-nail" viewBox="0 0 64 64">
+        <path d="m18 16 5-5 32 32 3 12-12-3Z" fill="#b6c7d8" stroke="#475569" stroke-width="3" stroke-linejoin="round"/>
+        <path d="m10 9 5-5 16 16-5 5Z" fill="#b6c7d8" stroke="#475569" stroke-width="3" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-nose" viewBox="0 0 64 64">
+        <path d="M28 11c0 11-4 19-12 24-10 7-4 16 4 16h6c0 7 12 7 13 0h6c8 0 14-9 5-15-7-6-10-17-11-25" fill="#f1ba9d" stroke="#935d57" stroke-width="3" stroke-linecap="round"/>
+        <path d="M20 49q3-4 7-2m12 0q4-2 7 2" fill="none" stroke="#935d57" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-octopus" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 26q0-17 16-17 18 0 18 17v8q10 4 9 16-4 7-8-2-1 6-5 8-6 3-7-5-2 8-7 8-5 1-6-8-5 8-9 5-4-1-4-8-5 9-8 3-4-10 11-17Z" fill="#d3adcf"/><path d="M25 28h.1m14 0h.1" stroke-width="4.2"/><path d="M28 36q4 5 8 0" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-paper" viewBox="0 0 64 64">
+        <path d="M13 5h27l11 12v42H13Z" fill="#fffbed" stroke="#7f7156" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M39 6v13h11M20 32q6-7 12 0t12 0M20 45h24" fill="none" stroke="#7f7156" stroke-width="2.5" stroke-dasharray="3 3"/>
+      </symbol>
+      <symbol id="icon-paw" viewBox="0 0 64 64">
+        <path d="M31 27c-7 0-10 7-16 12-7 7-3 16 5 16 6 0 8-3 12-3 6 0 7 3 13 3 8 0 12-9 6-16-7-5-12-12-20-12Z" fill="#bc9f8e" stroke="#604b52" stroke-width="2.5"/>
+        <ellipse cx="10" cy="28" rx="6" ry="8" transform="rotate(-23 10 28)" fill="#bc9f8e" stroke="#604b52" stroke-width="2"/>
+        <ellipse cx="23" cy="15" rx="7" ry="9" fill="#bc9f8e" stroke="#604b52" stroke-width="2"/>
+        <ellipse cx="41" cy="15" rx="7" ry="9" fill="#bc9f8e" stroke="#604b52" stroke-width="2"/>
+        <ellipse cx="54" cy="28" rx="6" ry="8" transform="rotate(23 54 28)" fill="#bc9f8e" stroke="#604b52" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-pear" viewBox="0 0 64 64">
+        <path d="M33 13c-9 0-12 8-13 16-2 6-10 9-10 18 0 10 9 14 22 14s22-4 22-14c0-9-8-12-10-18-1-8-4-16-11-16Z" fill="#b9d774" stroke="#4d6b40" stroke-width="3"/>
+        <path d="M32 16c0-6 3-11 7-13" fill="none" stroke="#664e38" stroke-width="4" stroke-linecap="round"/>
+        <path d="M35 12c3-7 12-8 17-7-3 6-10 10-17 7Z" fill="#63a85c"/>
+      </symbol>
+      <symbol id="icon-persimmon" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M32 18q-16-8-23 7-8 17 6 29 16 10 33 0 14-12 6-29-7-15-22-7Z" fill="#eda962"/><path d="M32 20q-5-8-16-8 1 7 8 11l-1 6 9-5 9 5-1-6q7-4 8-11-11 0-16 8Z" fill="#85ac65"/><path d="M32 18v-8" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-pig" viewBox="0 0 64 64">
+        <path d="M16 24 12 8c9 0 15 7 17 11h7c4-6 10-10 17-11l-4 17" fill="#f1a7ad" stroke="#935d68" stroke-width="3" stroke-linejoin="round"/>
+        <ellipse cx="32" cy="36" rx="23" ry="19" fill="#f2b5b9" stroke="#935d68" stroke-width="3"/>
+        <ellipse cx="32" cy="42" rx="12" ry="8" fill="#e58c98" stroke="#935d68" stroke-width="2"/>
+        <path d="M27 42h.1m10 0h.1m-15-11h.1m20 0h.1" stroke="#694b57" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-pillow" viewBox="0 0 64 64">
+        <path d="M13 18q20 5 38 0 10-4 7 6-5 19 0 22 2 8-7 6-19-5-38 0-9 2-7-6 4-12 0-22-3-10 7-6Z" fill="#d5b0e5" stroke="#9b6cac" stroke-width="3"/><path d="m14 24 6 6m30-6-6 6m-30 15 6-5m30 5-6-5" stroke="#b685c7" stroke-width="2" fill="none"/>
+      </symbol>
+      <symbol id="icon-pinecone" viewBox="0 0 64 64">
+        <path d="M27 13q17-6 22 12 3 14-17 32Q10 45 15 28q1-10 12-15Z" fill="#ad7751" stroke="#775036" stroke-width="3"/><path d="m30 13 3-7m-14 19 8 4 5-6 7 5 7-4m-31 10 8 6 8-5 7 5 8-6m-25 11 9 5 10-5" fill="none" stroke="#775036" stroke-width="2.5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-plane" viewBox="0 0 64 64">
+        <path d="M10 28l16 3 1-17c0-8 10-8 10 0l1 17 16-3 5 6-21 10-2 10 7 2v4H22v-4l7-2-2-10L6 34Z" fill="#a8cde6" stroke="#476782" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M29 17h6" stroke="#476782" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-plate" viewBox="0 0 64 64">
+        <ellipse cx="32" cy="32" rx="27" ry="22" fill="#e1f0f2" stroke="#4f8494" stroke-width="3"/><ellipse cx="32" cy="32" rx="17" ry="12" fill="#fff" stroke="#78a9b7" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-plum" viewBox="0 0 64 64">
+        <path d="M30 16c12-5 25 2 26 16 1 14-10 28-23 28C21 60 9 48 9 35c0-13 10-22 21-19Z" fill="#a177c1" stroke="#614277" stroke-width="3"/>
+        <path d="M33 17c6 11 10 26 0 39" fill="none" stroke="#794a9f" stroke-width="2.5"/>
+        <path d="M30 17c1-6 4-11 8-14M35 10c6-6 13-7 19-5-3 6-10 10-19 5Z" fill="#6bb067" stroke="#537945" stroke-width="2.5" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-pot" viewBox="0 0 64 64">
+        <path d="M12 29h40l-4 23H16Z" fill="#bacbd4" stroke="#667c8a" stroke-width="3"/><path d="M8 27h48l-5-6H13Z" fill="#dbe8ed" stroke="#667c8a" stroke-width="2.5"/><path d="M25 21q0-8 7-8t7 8M12 34H6m46 0h6" fill="none" stroke="#667c8a" stroke-width="4" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-potato" viewBox="0 0 64 64">
+        <path d="M8 34q0-14 13-19 8-3 13 3 11-4 19 5 8 10 1 22-9 13-28 9Q11 51 8 34Z" fill="#deb985" stroke="#a47c4b" stroke-width="3"/><path d="m19 31 2 2m13-10 2 3m9 8 2 3m-21 9 2 2" stroke="#a47c4b" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-rabbit" viewBox="0 0 64 64">
+        <path d="M23 29C15 17 13 5 19 4c8-1 13 13 15 24M35 27C35 14 39 5 45 7c7 3 3 17-1 25" fill="#f3c7b9" stroke="#604b45" stroke-width="3" stroke-linecap="round"/>
+        <path d="M23 28c-9 4-13 13-10 23 3 9 11 12 20 10 10 2 19-4 19-15 0-10-8-18-19-19-4 0-7 0-10 1" fill="#fffaf4" stroke="#604b45" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="25" cy="42" r="2.5" fill="#302b2a"/><circle cx="40" cy="42" r="2.5" fill="#302b2a"/>
+        <ellipse cx="32.5" cy="49" rx="4" ry="3" fill="#ec8e91"/>
+      </symbol>
+      <symbol id="icon-raft" viewBox="0 0 64 64">
+        <path d="m7 32 16-9 34 4-7 17-33 2Z" fill="#bd9163" stroke="#7d5935" stroke-width="3"/><path d="m9 33 45 1m-38 6 37-1m-33-15-3 21m31-19-5 18" fill="none" stroke="#7d5935" stroke-width="2"/><path d="M5 51q6-4 13 0 7 4 14 0 7-4 14 0 7 4 13 0" fill="none" stroke="#6eb0c7" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-rain" viewBox="0 0 64 64">
+        <path d="M14 35a10 10 0 0 1-3-20 13 13 0 0 1 24-4 10 10 0 0 1 17 7 9 9 0 0 1-2 17Z" fill="#c6def7" stroke="#4a7099" stroke-width="3"/>
+        <path d="m18 42-4 9m17-9-4 9m17-9-4 9m10-2-4 9m-22-3-3 6" stroke="#4a7099" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-rat" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M52 47q11-2 9-13-2-4-6-4M16 48q-8 1-12-8" fill="none"/><ellipse cx="36" cy="40" rx="22" ry="13" fill="#b7afb5"/><path d="M16 29Q5 32 8 42l14 5q13-5 10-14Z" fill="#c5b9c3"/><circle cx="21" cy="27" r="8" fill="#d6a9b4"/><circle cx="12" cy="36" r="2.3" fill="#614954"/><path d="M11 39 3 36m8 5-7 4" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-ribbon" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M31 31Q7 9 7 26 7 42 31 35m2-4q24-22 24-5 0 16-24 9M28 35 15 58l10-3 4 4 5-24m2 0 13 23-10-3-4 4-5-24" fill="#ec9caf"/><rect x="26" y="28" width="12" height="11" rx="3" fill="#db789b"/></g>
+      </symbol>
+      <symbol id="icon-root" viewBox="0 0 64 64">
+        <path d="M8 27h48v29H8Z" fill="#e8c4a4"/><path d="M8 27h48" stroke="#a97b53" stroke-width="3"/><path d="m32 8 0 33m0-11-11 11-5 12m16-11 12 4 4 9m-16-14-2 15" stroke="#825d37" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M31 18Q20 7 14 11q0 10 17 11m2-9q8-12 16-9 0 13-16 13" fill="#99c877" stroke="#598954" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-rose" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M32 28v28m0-12q-19 0-18-9 13-1 18 9Zm0 6q17-4 17-12-13 0-17 12Z" fill="#99c381"/><path d="M15 17q0-13 16-11 16-2 19 11 0 12-17 15-16-3-18-15Z" fill="#ed92a2"/><path d="M20 19q14 6 21-5-9-4-13 0 1 9 11 7" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-salt" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 23h28l6 27q1 9-7 9H19q-8 0-7-9Z" fill="#f9f6e9"/><path d="M17 25V17q0-6 15-6t15 6v8Z" fill="#afc5cc"/><path d="M24 17h.1m8-1h.1m8 1h.1m-16 22h.1m8-3h.1m7 6h.1m-9 4h.1m8 4h.1" stroke-width="3.3"/></g>
+      </symbol>
+      <symbol id="icon-scarf" viewBox="0 0 64 64">
+        <path d="M18 13q14-9 28 0l3 13q-16 10-34 0Z" fill="#d79ad1" stroke="#975589" stroke-width="2.5"/><path d="M26 28h11l-3 23-11-1zm13 0h11l5 25-12 2Z" fill="#d79ad1" stroke="#975589" stroke-width="2.5"/><path d="m44 55 1 5m5-6 1 5m3-6 2 5M24 50l-1 5m5-4-1 5m6-5-1 5" stroke="#975589" stroke-width="2" fill="none"/>
+      </symbol>
+      <symbol id="icon-shadow" viewBox="0 0 64 64">
+        <circle cx="16" cy="13" r="7" fill="#ffd46e"/><path d="m10 26-3 4m17-8 4 2" stroke="#ce9d3b" stroke-width="2" stroke-linecap="round"/><ellipse cx="41" cy="49" rx="19" ry="5.5" fill="#8391a1"/><path d="M24 24v19m-8-9 8-5 8 5m-8 9-5 9m5-9 5 9" fill="none" stroke="#b08269" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="22" r="4" fill="#bd967e"/>
+      </symbol>
+      <symbol id="icon-sheep" viewBox="0 0 64 64">
+        <path d="M18 46v10m27-10v10" stroke="#61595c" stroke-width="5" stroke-linecap="round"/>
+        <path d="M9 31c-4-6 1-13 7-12 0-7 8-10 13-6 7-7 15-3 17 4 6-2 13 4 10 11 5 5 2 14-5 16-1 8-12 11-18 5-7 5-15 3-17-4-7 1-12-7-7-14Z" fill="#fff5df" stroke="#786867" stroke-width="3"/>
+        <path d="M18 26c-7-5-12-6-14 0 4 5 8 6 14 5" fill="#ad9690" stroke="#786867" stroke-width="2"/>
+        <ellipse cx="23" cy="34" rx="10" ry="12" fill="#c9b0a6" stroke="#786867" stroke-width="2.5"/>
+        <circle cx="20" cy="31" r="2" fill="#433b42"/>
+        <path d="m18 38 5 2" stroke="#52454a" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-shirt" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 9-4q7 9 14 0l9 4 11 13-9 7-7-5v25H21V28l-7 5-9-7Z" fill="#9ed4d5"/><path d="M25 10q7 14 14 0M28 33h9v8h-9Z" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-shoe" viewBox="0 0 64 64">
+        <path d="M8 37q9-4 15-19l13 3q2 9 12 12l9 3q4 2 4 10v4H7q-5-7 1-13Z" fill="#acbfea" stroke="#444f88" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M8 46h52m-37-19 9 4m-12 2 9 4" fill="none" stroke="#444f88" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-shovel" viewBox="0 0 64 64">
+        <path d="M14 9q5-5 11 1l3 3-6 6-4-4q-4-3-7 0-2-4 3-6Z" fill="#cda172" stroke="#84633a" stroke-width="2"/><path d="m22 18 19 22" stroke="#8a6238" stroke-width="5" stroke-linecap="round"/><path d="m35 40 11-9 10 12q7 10-4 15-5 2-10-4Z" fill="#a9c4d6" stroke="#62839a" stroke-width="3"/>
+      </symbol>
+      <symbol id="icon-snake" viewBox="0 0 64 64">
+        <path d="M12 48 C18 48 22 40 30 40 C38 40 42 48 50 48 C54 48 56 42 52 36 C46 28 42 22 36 22 C30 22 26 26 22 26" fill="none" stroke="#22c55e" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="52" cy="34" r="2" fill="#1e293b"/>
+      </symbol>
+      <symbol id="icon-spider" viewBox="0 0 64 64">
+        <path d="M23 24 14 18 8 20m14 10-12-3-5 5m17 5-10 2-6 7m18-1-8 7m25-28 9-6 6 2m-14 10 12-3 5 5m-17 5 10 2 6 7m-18-1 8 7" fill="none" stroke="#695152" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="32" cy="38" rx="12" ry="14" fill="#9c6e76" stroke="#695152" stroke-width="3"/><circle cx="32" cy="23" r="8" fill="#9c6e76" stroke="#695152" stroke-width="2.5"/><circle cx="29" cy="22" r="1.5"/><circle cx="35" cy="22" r="1.5"/>
+      </symbol>
+      <symbol id="icon-star" viewBox="0 0 64 64">
+        <polygon points="32,6 40,22 58,25 45,38 48,56 32,47 16,56 19,38 6,25 24,22" fill="#ffd13b" stroke="#b48316" stroke-width="3" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-steak" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 35q-2-22 16-23 17-1 24 9 15 19 6 29-9 10-23 2-9-2-16 0Q8 48 10 35Z" fill="#e18a84"/><path d="M16 31q17-18 28-6 17 18 7 22-6 6-15-2-6-3-17 0Q13 42 16 31Z" fill="none" stroke="#fff0db"/><circle cx="45" cy="32" r="4" fill="#fef0d4"/></g>
+      </symbol>
+      <symbol id="icon-stone" viewBox="0 0 64 64">
+        <path d="M7 42l6-16 16-9 17 3 11 14 1 13q-19 8-44 2Z" fill="#a4afb8" stroke="#65737e" stroke-width="3"/><path d="m13 26 16 7 17-13m-17 13-4 17" fill="none" stroke="#7f8e9a" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-storm" viewBox="0 0 64 64">
+        <path d="M16 38q-10 0-10-9 1-9 11-9 4-12 15-11 10 0 13 9 13-1 13 10 0 10-13 10Z" fill="#a6a9ca" stroke="#676c9a" stroke-width="3"/><path d="M34 34l-8 13h7l-3 12 14-17h-8l6-8Z" fill="#ffdc73" stroke="#af893d" stroke-width="2.5"/><path d="m16 44-3 7m37-7-3 7" stroke="#709abc" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-strawberry" viewBox="0 0 64 64">
+        <path d="M10 24c0-9 10-11 22-9 13-2 22 0 22 9 0 16-15 33-22 33S10 40 10 24Z" fill="#ee7777" stroke="#a04153" stroke-width="3"/>
+        <path d="M32 19 21 13l4 10 7-4 9 3 3-11-12 8V8" fill="#75ac68" stroke="#4c794e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M19 29v2m12-4v2m13 1v2M26 39v2m12-3v2m-7 7v2" stroke="#fff2ae" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-street" viewBox="0 0 64 64">
+        <path d="M24 17h16l17 39H7Z" fill="#9ca7b2" stroke="#657683" stroke-width="2.5"/><path d="M32 22v5m0 5v7m0 5v9" stroke="#fff" stroke-width="2.5"/><path d="M4 36V18h13v18M47 36V18h13v18" fill="#f8dcaf" stroke="#b78b51" stroke-width="2"/><path d="m2 18 9-8 8 8m26 0 8-8 9 8" fill="#e99184" stroke="#a75e47" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-suitcase" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="21" width="50" height="35" rx="6" fill="#d9a37a"/><path d="M24 21v-6q0-5 8-5t8 5v6m-17 1v34m18-34v34" fill="none"/><circle cx="32" cy="40" r="3" fill="#f4ce8a"/></g>
+      </symbol>
+      <symbol id="icon-sun" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="15" fill="#f8cf62" stroke="#986f3e" stroke-width="3"/>
+        <path d="M32 4v8m0 40v8M4 32h8m40 0h8M12 12l6 6m28 28 6 6m0-40-6 6M18 46l-6 6" stroke="#c3833d" stroke-width="3.5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-table" viewBox="0 0 64 64">
+        <path d="M12 32h7v24h-7zm33 0h7v24h-7z" fill="#c99c69" stroke="#805c37" stroke-width="2.5"/><path d="M9 19h46l5 12H4Z" fill="#e9bd87" stroke="#805c37" stroke-width="3" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-tail" viewBox="0 0 64 64">
+        <path d="M10 48C18 35 21 22 37 18c9-2 15-7 17-13 8 21-4 43-20 50-8 4-17 3-24-7Z" fill="#e39361" stroke="#875845" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M54 7c4 11 3 20-2 28l-6-6-4 4-4-8-3-5c9-3 16-8 19-13Z" fill="#f8e6cf"/>
+        <path d="M10 48c11-19 17-24 27-29 10-3 15-7 17-14 8 21-4 43-20 50-8 4-17 3-24-7Z" fill="none" stroke="#875845" stroke-width="3" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-tooth" viewBox="0 0 64 64">
+        <path d="M13 19q3-16 17-10 2 2 5 0 14-7 17 10 2 9-4 20-4 16-8 16-4 0-5-13 0-4-3-4t-3 4q-1 13-5 13-4 0-8-16-5-11-3-20Z" fill="#fff" stroke="#819ba4" stroke-width="3"/><path d="M21 17q8-4 12 3" fill="none" stroke="#d5e3e9" stroke-width="3"/>
+      </symbol>
+      <symbol id="icon-train" viewBox="0 0 64 64">
+        <path d="M8 47h49l3-8h-7V20H29v16H19v-7H9v11H4v7Z" fill="#70adcc" stroke="#41586e" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M28 19h27M8 27h13" stroke="#41586e" stroke-width="3" stroke-linecap="round"/>
+        <rect x="36" y="25" width="10" height="10" rx="2" fill="#ecfbff"/>
+        <circle cx="17" cy="49" r="7" fill="#485b6e"/>
+        <circle cx="43" cy="49" r="7" fill="#485b6e"/>
+        <path d="M12 12c5-6 11 0 7 4 7 0 6 6 1 7" fill="none" stroke="#b2bbc5" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-tree" viewBox="0 0 64 64">
+        <circle cx="32" cy="26" r="18" fill="#4ade80" stroke="#16a34a" stroke-width="3"/>
+        <rect x="28" y="44" width="8" height="16" fill="#78350f"/>
+      </symbol>
+      <symbol id="icon-turtle" viewBox="0 0 64 64">
+        <path d="m19 44-5 10m27-10 4 10" stroke="#447753" stroke-width="6" stroke-linecap="round"/><path d="M44 40c-1-9 4-16 10-16s9 7 5 13l-7 6" fill="#a7cd79" stroke="#447753" stroke-width="3"/><path d="M6 43c3-13 11-23 23-23s20 9 20 23c-14 7-29 7-43 0Z" fill="#8ab96e" stroke="#447753" stroke-width="3"/><path d="M20 45V31l9-10 9 10v14M20 31l-8 5m26-5 8 5" fill="none" stroke="#447753" stroke-width="2.7"/><circle cx="54" cy="31" r="2" fill="#273b2a"/>
+      </symbol>
+      <symbol id="icon-twig" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 51 57 12M25 36l-3-13m19 1 9 4" fill="none" stroke="#936748" stroke-width="5"/></g>
+      </symbol>
+      <symbol id="icon-wall" viewBox="0 0 64 64">
+        <rect x="6" y="13" width="52" height="41" rx="2" fill="#df927a" stroke="#965943" stroke-width="3"/><path d="M6 26h52M6 41h52M22 13v13m20-13v13m-11 0v15m-11 0v13m23-13v13" stroke="#fff1d7" stroke-width="3" fill="none"/>
+      </symbol>
+      <symbol id="icon-water" viewBox="0 0 64 64">
+        <path d="M32 7c-5 10-19 24-19 35 0 9 8 17 19 17s19-8 19-17C51 31 37 17 32 7Z" fill="#9bd3ee" stroke="#457ca0" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M22 39c-3 8 1 13 5 14" fill="none" stroke="#f0faff" stroke-width="4" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-wave" viewBox="0 0 64 64">
+        <path d="M6 41q14-1 16-15 3-14 17-14 12 0 18 12-10-5-13 0-4 6 10 12v13H6Z" fill="#8dc3d7" stroke="#578ea4" stroke-width="3" stroke-linejoin="round"/><path d="M5 48q9-5 18 0 9 5 18 0 9-5 18 0" fill="none" stroke="#e5f7fa" stroke-width="3"/>
+      </symbol>
+      <symbol id="icon-whale" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 40q5-20 25-20 13 0 18 12l12-7-2 13 4 6-14-2q-10 12-27 10Q5 52 5 40Z" fill="#8bc4dc"/><path d="M10 45q12 6 29 0M28 20q1-10-8-12m8 12q1-9 9-12" fill="none"/><circle cx="15" cy="34" r="2.7" fill="#44697f" stroke="none"/></g>
+      </symbol>
+      <symbol id="icon-wheel" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="24" fill="#7c9099"/><circle cx="32" cy="32" r="16" fill="#fff4d9"/><circle cx="32" cy="32" r="5" fill="#afc5cc"/><path d="M32 16v11m0 10v11m-16-16h11m10 0h11m-27-11 7 7m8 8 7 7m0-22-7 7m-8 8-7 7" fill="none"/></g>
+      </symbol>
+      <symbol id="icon-window" viewBox="0 0 64 64">
+        <rect x="9" y="9" width="46" height="46" rx="2" fill="#d6ecf3" stroke="#658294" stroke-width="4"/><path d="M32 10v44M10 32h44" stroke="#658294" stroke-width="3"/><path d="m15 24 8-8m15 9 8-8m-6 31 8-8" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-woman" viewBox="0 0 64 64">
+        <path d="M13 44q-2-16 1-26 3-13 18-13t18 13q3 13 1 26Z" fill="#86603d" stroke="#60482f" stroke-width="2"/><path d="M10 59q3-16 22-17 19 1 22 17Z" fill="#d58fc2" stroke="#985d8d" stroke-width="2.5"/><path d="M20 25q5 1 13-9 6 9 11 9v8q0 12-12 13-12-1-12-13Z" fill="#f5c5a5" stroke="#8f694f" stroke-width="2"/><circle cx="27" cy="30" r="1.8"/><circle cx="37" cy="30" r="1.8"/>
+      </symbol>
+      <symbol id="icon-yarn" viewBox="0 0 64 64">
+        <g stroke="#765d50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="30" r="22" fill="#c9a6e5"/><path d="M12 21q26-5 38 17M9 30q23-5 32 20M16 13q18-4 32 11M23 10q13 2 26 15m-6 23q4 9 12 4 6-4 7 2" fill="none"/></g>
+      </symbol>
+    </svg>
+    <header class="game-topbar">
+      <div class="game-brand-row">
+        <a class="site-brand" href="../../index.html" data-no-l10n>
+          <span class="game-brand-icon" aria-hidden="true">✿</span>
+          <span>Little Explorers</span>
+        </a>
+        <div class="language-bar" hidden>
+          <label class="language-control" for="worksheet-language">
+            <span>Jazyk</span>
+            <select id="worksheet-language"></select>
+          </label>
+        </div>
+      </div>
+      <nav class="game-links" aria-label="Všetky hry">
+        <a class="catalog-link" href="../../index.html">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 12H4m6-6-6 6 6 6"/>
+          </svg>
+          <span>Späť na hry</span>
+        </a>
+        <details class="games-menu" hidden>
+          <summary>Všetky hry</summary>
+          <div class="games-menu-panel">
+            <ul id="related-games"></ul>
+          </div>
+        </details>
+      </nav>
+    </header>
+
+    <header class="toolbar">
+      <h1>Počuj rozdiel</h1>
+      <div class="actions">
+        <button class="secondary" type="button" onclick="generateWorksheet()">Nové úlohy</button>
+        <button type="button" onclick="window.print()">Vytlačiť list</button>
+      </div>
+    </header>
+    <main>
+      <section class="worksheet" aria-labelledby="worksheet-title">
+        <header class="page-header">
+          <h2 id="worksheet-title">Počuj rozdiel</h2>
+          <p>Dospelý prečíta v každom riadku iba slovo, ktoré je pri obrázkoch. Pozorne počúvaj a zakrúžkuj obrázok toho, čo počuješ.</p>
+        </header>
+        <div id="worksheet-content"></div>
+      </section>
+    </main>
+    <footer class="game-footer">
+      <span>© 2026 Milan Jankovec</span>
+      <a href="https://github.com/milanjankovec/little-explorers">GitHub</a>
+      <a href="../../LICENSE">EUPL-1.2</a>
+    </footer>
+
+    <script>
+      // Use familiar local words that share sounds but still sound different when spoken.
+      const soundPairs = {
+        "sk": [
+          [["dog","pes"],["forest","les"]],
+          [["house","dom"],["tree","strom"]],
+          [["water","voda"],["strawberry","jahoda"]],
+          [["cat","mačka"],["duck","kačka"]],
+          [["train","vlak"],["cloud","mrak"]],
+          [["crab","rak"],["dragon","drak"]],
+          [["nose","nos"],["blackbird","kos"]]
+        ],
+        "en": [
+          [["cat","cat"],["hat","hat"]],
+          [["house","house"],["mouse","mouse"]],
+          [["pear","pear"],["bear","bear"]],
+          [["tree","tree"],["bee","bee"]],
+          [["train","train"],["plane","plane"]],
+          [["fish","fish"],["plate","dish"]],
+          [["ball","ball"],["wall","wall"]]
+        ],
+        "cs": [
+          [["dog","pes"],["forest","les"]],
+          [["snake","had"],["castle","hrad"]],
+          [["nose","nos"],["blackbird","kos"]],
+          [["train","vlak"],["cloud","mrak"]],
+          [["cow","kráva"],["grass","tráva"]],
+          [["mountain","hora"],["burrow","nora"]],
+          [["water","voda"],["strawberry","jahoda"]]
+        ],
+        "de": [
+          [["mouse","Maus"],["house","Haus"]],
+          [["table","Tisch"],["fish","Fisch"]],
+          [["cow","Kuh"],["shoe","Schuh"]],
+          [["dog","Hund"],["mouth","Mund"]],
+          [["rabbit","Hase"],["nose","Nase"]],
+          [["pig","Schwein"],["stone","Stein"]],
+          [["hand","Hand"],["wall","Wand"]]
+        ],
+        "pl": [
+          [["cat","kot"],["fence","płot"]],
+          [["head","głowa"],["cow","krowa"]],
+          [["mouse","myszka"],["pinecone","szyszka"]],
+          [["mountain","góra"],["hen","kura"]],
+          [["pear","gruszka"],["pillow","poduszka"]],
+          [["forest","las"],["fox","lis"]]
+        ],
+        "hu": [
+          [["fish","hal"],["wall","fal"]],
+          [["hand","kéz"],["honey","méz"]],
+          [["stone","kő"],["woman","nő"]],
+          [["house","ház"],["belly","has"]],
+          [["sun","nap"],["paper","lap"]],
+          [["mouse","egér"],["bread","kenyér"]],
+          [["bee","méh"],["honey","méz"]]
+        ],
+        "fr": [
+          [["cat","chat"],["rat","rat"]],
+          [["hand","main"],["train","train"]],
+          [["moon","lune"],["plum","prune"]],
+          [["apple","pomme"],["man","homme"]],
+          [["fish","poisson"],["house","maison"]],
+          [["ear","oreille"],["bee","abeille"]]
+        ],
+        "es": [
+          [["cat","gato"],["duck","pato"]],
+          [["cheese","queso"],["kiss","beso"]],
+          [["moon","luna"],["magnifier","lupa"]],
+          [["table","mesa"],["strawberry","fresa"]],
+          [["shovel","pala"],["twig","palo"]],
+          [["mouse","ratón"],["ball","balón"]]
+        ],
+        "it": [
+          [["cat","gatto"],["plate","piatto"]],
+          [["dog","cane"],["bread","pane"]],
+          [["frog","rana"],["yarn","lana"]],
+          [["candle","candela"],["apple","mela"]],
+          [["sun","sole"],["salt","sale"]],
+          [["heart","cuore"],["flower","fiore"]]
+        ],
+        "pt": [
+          [["cat","gato"],["duck","pato"]],
+          [["dog","cão"],["bread","pão"]],
+          [["moon","lua"],["street","rua"]],
+          [["window","janela"],["pot","panela"]],
+          [["comb","pente"],["tooth","dente"]],
+          [["rat","rato"],["plate","prato"]]
+        ],
+        "nl": [
+          [["cat","kat"],["mat","mat"]],
+          [["dog","hond"],["mouth","mond"]],
+          [["house","huis"],["mouse","muis"]],
+          [["hand","hand"],["tooth","tand"]],
+          [["pear","peer"],["bear","beer"]],
+          [["boat","boot"],["paw","poot"]]
+        ],
+        "ro": [
+          [["house","casă"],["table","masă"]],
+          [["flower","floare"],["sun","soare"]],
+          [["dog","câine"],["bread","pâine"]],
+          [["apple","măr"],["hair","păr"]],
+          [["horse","cal"],["scarf","șal"]],
+          [["moon","lună"],["plum","prună"]]
+        ],
+        "uk": [
+          [["cat","кіт"],["whale","кит"]],
+          [["goat","коза"],["storm","гроза"]],
+          [["bridge","міст"],["tail","хвіст"]],
+          [["beetle","жук"],["spider","павук"]],
+          [["house","хата"],["shovel","лопата"]],
+          [["horse","кінь"],["shadow","тінь"]],
+          [["mouse","мишка"],["book","книжка"]]
+        ],
+        "el": [
+          [["cat","γάτα"],["potato","πατάτα"]],
+          [["water","νερό"],["feather","φτερό"]],
+          [["milk","γάλα"],["ball","μπάλα"]],
+          [["fish","ψάρι"],["moon","φεγγάρι"]],
+          [["hat","καπέλο"],["brush","πινέλο"]],
+          [["hand","χέρι"],["star","αστέρι"]]
+        ],
+        "sv": [
+          [["cat","katt"],["hat","hatt"]],
+          [["mouse","mus"],["house","hus"]],
+          [["sun","sol"],["chair","stol"]],
+          [["car","bil"],["arrow","pil"]],
+          [["hand","hand"],["tooth","tand"]],
+          [["train","tåg"],["wave","våg"]],
+          [["cow","ko"],["shoe","sko"]]
+        ],
+        "zh-Hans": [
+          [["dog","狗"],["hand","手"]],
+          [["duck","鸭"],["tooth","牙"]],
+          [["fish","鱼"],["rain","雨"]],
+          [["boat","船"],["bed","床"]],
+          [["shoe","鞋"],["crab","蟹"]],
+          [["star","星"],["heart","心"]],
+          [["mug","杯子"],["blanket","被子"]]
+        ],
+        "zh-Hant": [
+          [["dog","狗"],["hand","手"]],
+          [["duck","鴨"],["tooth","牙"]],
+          [["fish","魚"],["rain","雨"]],
+          [["boat","船"],["bed","床"]],
+          [["shoe","鞋"],["crab","蟹"]],
+          [["star","星"],["heart","心"]],
+          [["mug","杯子"],["blanket","被子"]]
+        ],
+        "ja": [
+          [["persimmon","かき"],["key","かぎ"]],
+          [["cat","ねこ"],["octopus","たこ"]],
+          [["dog","いぬ"],["chair","いす"]],
+          [["cow","うし"],["house","うち"]],
+          [["chopsticks","はし"],["star","ほし"]],
+          [["comb","くし"],["shoe","くつ"]]
+        ],
+        "ko": [
+          [["pear","배"],["dog","개"]],
+          [["horse","말"],["moon","달"]],
+          [["foot","발"],["star","별"]],
+          [["bear","곰"],["ball","공"]],
+          [["nose","코"],["cow","소"]],
+          [["water","물"],["fire","불"]]
+        ],
+        "id": [
+          [["nail","paku"],["hammer","palu"]],
+          [["stone","batu"],["shirt","baju"]],
+          [["map","peta"],["ribbon","pita"]],
+          [["cow","sapi"],["broom","sapu"]],
+          [["book","buku"],["feather","bulu"]],
+          [["bread","roti"],["wheel","roda"]]
+        ],
+        "tr": [
+          [["stone","taş"],["head","baş"]],
+          [["honey","bal"],["raft","sal"]],
+          [["horse","at"],["steak","et"]],
+          [["rose","gül"],["lake","göl"]],
+          [["nose","burun"],["sheep","koyun"]],
+          [["bell","zil"],["elephant","fil"]]
+        ],
+        "vi": [
+          [["fish","cá"],["leaf","lá"]],
+          [["cat","mèo"],["pig","heo"]],
+          [["crab","cua"],["turtle","rùa"]],
+          [["hat","mũ"],["nose","mũi"]],
+          [["hen","gà"],["house","nhà"]],
+          [["foot","chân"],["blanket","chăn"]],
+          [["moon","trăng"],["tooth","răng"]]
+        ],
+        "pt-BR": [
+          [["cat","gato"],["duck","pato"]],
+          [["hand","mão"],["bread","pão"]],
+          [["suitcase","mala"],["candy","bala"]],
+          [["moon","lua"],["street","rua"]],
+          [["ball","bola"],["glue","cola"]],
+          [["nose","nariz"],["root","raiz"]]
+        ]
+      };
+
+      function shuffleSoundPictures(items) {
+        const result = [...items];
+        for (let index = result.length - 1; index > 0; index -= 1) {
+          const other = Math.floor(Math.random() * (index + 1));
+          [result[index], result[other]] = [result[other], result[index]];
+        }
+        return result;
+      }
+
+      function soundChoice(icon, index) {
+        return `
+              <g transform="translate(${80 + index * 281} 36)" data-sound-choice="${icon}">
+                <rect width="258" height="116" rx="14" fill="#fff" stroke="#bcaec5" stroke-width="1.7"/>
+                <svg x="84" y="9" width="94" height="94" viewBox="0 0 64 64"><use href="#icon-${icon}"/></svg>
+                <circle cx="232" cy="90" r="12" fill="#fff" stroke="#7c6088" stroke-width="2"/>
+              </g>`;
+      }
+
+      function generateWorksheet() {
+        const pairs = soundPairs[window.HraveListy.language];
+        const rows = shuffleSoundPictures(pairs).slice(0, 5).map((pair, index) => {
+          const options = shuffleSoundPictures(pair);
+          const [answerIcon, word] = pair[Math.floor(Math.random() * pair.length)];
+          return `
+            <g transform="translate(0 ${11 + index * 167})" data-sound-row="${index + 1}" data-sound-answer="${answerIcon}">
+              <rect x="11" width="678" height="157" rx="15" fill="#fff" stroke="#beb1c7" stroke-width="1.5"/>
+              <text x="26" y="25" font-size="23" font-weight="700" fill="#59435f" data-sound-cue data-no-l10n>${index + 1}. ${word}</text>
+              ${options.map(([icon], choice) => soundChoice(icon, choice)).join("")}
+            </g>`;
+        });
+        document.getElementById("worksheet-content").innerHTML = `
+          <svg class="activity-drawing" viewBox="0 0 700 850" aria-hidden="true">${rows.join("")}</svg>`;
+      }
+
+      generateWorksheet();
+    </script>
+  </body>
+</html>

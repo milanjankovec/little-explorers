@@ -1,0 +1,1194 @@
+<!--
+SPDX-FileCopyrightText: 2026 Milan Jankovec
+SPDX-License-Identifier: EUPL-1.2
+-->
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%229%22%20fill%3D%22%23dceedd%22%2F%3E%3Cg%20fill%3D%22%23236747%22%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2210%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2221.7%22%20cy%3D%2214.2%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2219.5%22%20cy%3D%2220.8%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2212.5%22%20cy%3D%2220.8%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2210.3%22%20cy%3D%2214.2%22%20r%3D%224.5%22%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%223.3%22%20fill%3D%22%23ffd46b%22%2F%3E%3C%2Fsvg%3E">
+    <meta name="author" content="Milan Jankovec">
+    <meta name="repository" content="https://github.com/milanjankovec/little-explorers">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Čo chýba na obrázku? na vytlačenie</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 24px;
+        color: #20252d; background: #edf1f6;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .toolbar {
+        display: flex; max-width: 900px;
+        align-items: center; justify-content: space-between;
+        gap: 16px; margin: 0 auto 24px;
+      }
+      .toolbar h1 { margin: 0 0 4px; font-size: 1.4rem; }
+      .toolbar p { margin: 0; color: #566170; }
+      .actions { display: flex; flex: 0 0 auto; gap: 8px; }
+      button {
+        padding: 11px 16px; border: 0; border-radius: 8px;
+        color: white; background: #3158a5; font: inherit; font-weight: 650;
+        cursor: pointer; transition: background 0.15s;
+      }
+      button:hover { background: #244485; }
+      button.secondary {
+        color: #263248; background: white;
+        box-shadow: inset 0 0 0 1px #cbd3df;
+      }
+      button.secondary:hover { background: #f5f7fa; }
+      .worksheet {
+        width: min(100%, 210mm); height: 297mm;
+        margin: 0 auto 24px; padding: 10mm 12mm;
+        background: white; box-shadow: 0 2px 18px #1720331a;
+        display: flex; flex-direction: column; justify-content: space-between;
+      }
+      .page-header {
+        border-bottom: 0.4mm solid #d5dbe4;
+        padding-bottom: 2mm; margin-bottom: 3mm;
+        display: flex; justify-content: space-between; align-items: flex-end;
+      }
+      .page-header h1 { margin: 0; font-size: 16pt; color: #1e2633; }
+      .page-header p { margin: 1mm 0 0; font-size: 9pt; color: #5d6878; }
+      .cards-grid {
+        display: grid; grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr; gap: 5mm; flex: 1;
+      }
+      .missing-card {
+        border: 0.35mm solid #cbd3df; border-radius: 3mm;
+        padding: 3mm 3.5mm; background: #fafbfd;
+        display: flex; flex-direction: column; justify-content: space-between;
+      }
+      .card-header {
+        display: flex; justify-content: space-between; align-items: center; margin-bottom: 1mm;
+      }
+      .card-header h2 { margin: 0; font-size: 11pt; color: #263248; }
+      .badge {
+        padding: 0.8mm 2mm; border: 0.25mm solid #454b54;
+        border-radius: 999px; font-size: 7pt; font-weight: 600; color: #454b54;
+      }
+      .missing-svg { width: 100%; height: 58mm; display: block; }
+      .choices-row {
+        display: flex; justify-content: space-around; align-items: center;
+        background: white; padding: 2mm 1mm; border-radius: 2mm;
+        border: 0.3mm solid #cbd5e1; margin-top: 1.5mm;
+      }
+      .choice-bubble {
+        padding: 1.5mm 3.5mm; border: 0.35mm solid #717d8e;
+        border-radius: 999px; font-size: 8pt; font-weight: 700; color: #1e293b;
+      }
+      @media (max-width: 650px) {
+        body { padding: 12px; }
+        .toolbar { align-items: flex-start; flex-direction: column; }
+        .actions { width: 100%; }
+        .actions button { flex: 1; }
+        .worksheet { height: auto; min-height: 297mm; padding: 6mm; }
+        .cards-grid { grid-template-columns: 1fr; }
+      }
+      .game-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px 11px;
+        width: min(100%, 210mm);
+        margin-inline: auto;
+        padding-block: 9px 5px;
+        border-top: 1px solid #cbd3df;
+        color: #4c5766;
+        font-size: .65rem;
+        line-height: 1.5;
+      }
+
+      .game-footer a {
+        color: inherit;
+        overflow-wrap: anywhere;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .game-footer a:hover { color: #3158a5; background: none; }
+
+      @page { size: A4 portrait; margin: 0; }
+      @media print {
+        .missing-card { background-color: white; }
+        body { padding: 0; background: white; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        .toolbar, .game-footer { display: none; }
+        .worksheet {
+          width: 210mm; height: 297mm; min-height: 297mm;
+          margin: 0; padding: 10mm 12mm; box-shadow: none; page-break-after: avoid;
+        }
+      }
+      .game-topbar {
+        max-width: 900px;
+        margin: 0 auto 12px;
+        color: #394553;
+        font: 600 .9rem/1.4 system-ui, sans-serif;
+      }
+
+      .game-brand-row, .game-links {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+      }
+
+      .game-brand-row {
+        min-height: 56px;
+        padding-bottom: 9px;
+        border-bottom: 1px solid #cbd9d0;
+      }
+
+      .game-links { position: relative; padding-top: 8px; }
+      .game-topbar .site-brand, .game-topbar .catalog-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        max-width: 100%;
+        gap: 8px;
+        color: #246547;
+        text-decoration: none;
+      }
+
+      .game-topbar .site-brand { color: #202f26; font-size: 1.06rem; font-weight: 800; }
+      .game-topbar .catalog-link { font-weight: 700; overflow-wrap: anywhere; }
+      .game-topbar .catalog-link:hover, .game-topbar .site-brand:hover { text-decoration: underline; text-underline-offset: .2em; }
+      .catalog-link svg { flex: none; }
+      .game-brand-icon {
+        display: grid;
+        flex: none;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: #dceedd;
+        color: #236747;
+        font-size: 1.25rem;
+        line-height: 1;
+      }
+
+      .language-bar[hidden], .games-menu[hidden] { display: none; }
+      .language-bar { margin-inline-start: auto; }
+      .language-control { display: flex; align-items: center; gap: 7px; }
+      .language-control select {
+        max-width: min(145px, 42vw);
+        padding: 5px 6px;
+        border: 1px solid #cbd3df;
+        border-radius: 6px;
+        background: #fff;
+        color: inherit;
+        font: inherit;
+      }
+
+      .game-topbar :is(a, summary, select):focus-visible {
+        outline: 2px solid #246547;
+        outline-offset: 2px;
+      }
+
+      .games-menu { max-width: 100%; margin-inline-start: auto; }
+      .games-menu summary {
+        min-height: 44px;
+        padding: 10px 12px;
+        border: 1px solid #cbd3df;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+        overflow-wrap: anywhere;
+      }
+
+      .games-menu-panel {
+        position: absolute;
+        z-index: 10;
+        top: calc(100% + 6px);
+        inset-inline-end: 0;
+        width: min(480px, 100%);
+        max-height: min(58vh, 470px);
+        overflow: auto;
+        padding: 8px;
+        border: 1px solid #cbd3df;
+        border-radius: 9px;
+        background: #fff;
+        box-shadow: 0 6px 22px #17203324;
+      }
+
+      .games-menu-panel ul {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 3px 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .games-menu-panel a {
+        display: block;
+        padding: 5px 7px;
+        border-radius: 5px;
+        color: inherit;
+        overflow-wrap: anywhere;
+        text-decoration: none;
+      }
+
+      .games-menu-panel a:hover, .games-menu-panel a[aria-current="page"] { background: #e7f2e8; }
+
+      @media screen and (max-width: 430px) {
+        .games-menu-panel ul { grid-template-columns: 1fr; }
+      }
+
+      @media print { .game-topbar { display: none; } }
+    </style>
+    <script type="application/json" id="game-translations">
+      {
+        "Čo chýba na obrázku? na vytlačenie": ["What’s missing?","Co chybí na obrázku?","Was fehlt im Bild?","Czego brakuje na obrazku?","Mi hiányzik a képről?","Que manque-t-il dans l’image ?","¿Qué falta en el dibujo?","Cosa manca nell’immagine?","O que falta na imagem?","Wat ontbreekt op de afbeelding?","Ce lipsește din imagine?","Чого бракує на малюнку?","Τι λείπει από την εικόνα;","Vad saknas i bilden?","图上少了什么？","圖上少了什麼？","何が足りない？","무엇이 빠졌을까요?","Apa yang hilang?","Ne eksik?","Thiếu gì?","O que falta na imagem?"],
+        "Čo chýba na obrázku?": ["What’s missing?","Co chybí na obrázku?","Was fehlt im Bild?","Czego brakuje na obrazku?","Mi hiányzik a képről?","Que manque-t-il dans l’image ?","¿Qué falta en el dibujo?","Cosa manca nell’immagine?","O que falta na imagem?","Wat ontbreekt op de afbeelding?","Ce lipsește din imagine?","Чого бракує на малюнку?","Τι λείπει από την εικόνα;","Vad saknas i bilden?","图上少了什么？","圖上少了什麼？","何が足りない？","무엇이 빠졌을까요?","Apa yang hilang?","Ne eksik?","Thiếu gì?","O que falta na imagem?"],
+        "Obrázkové úlohy na pozornosť a postreh pre deti 3–5 rokov.": ["Picture activities to practise observation.","Obrázkové úkoly pro bystré oči.","Bildaufgaben für aufmerksame Augen.","Zadania obrazkowe na spostrzegawczość.","Képes feladatok a megfigyelés gyakorlásához.","Des jeux d’observation en images.","Actividades de observación con dibujos.","Attività di osservazione con immagini.","Atividades de observação com imagens.","Kijkopdrachten met afbeeldingen.","Exerciții de atenție cu imagini.","Завдання з малюнками на уважність.","Ασκήσεις παρατήρησης με εικόνες.","Bilduppgifter för att öva uppmärksamhet.","仔细观察图片，找出少了什么。","仔細觀察圖片，找出少了什麼。","絵をよく見る練習。","그림을 자세히 살피는 놀이.","Aktivitas bergambar untuk melatih ketelitian.","Gözlem becerisini geliştiren resimli etkinlikler.","Bài tập bằng hình để luyện quan sát.","Atividades de observação com imagens."],
+        "Pozri sa pozorne: Čo tu chýba?": ["Look closely. What’s missing?","Podívej se pozorně. Co chybí?","Schau genau hin. Was fehlt?","Przyjrzyj się uważnie. Czego brakuje?","Nézd meg jól! Mi hiányzik?","Regarde bien. Que manque-t-il ?","Mira bien. ¿Qué falta?","Guarda bene. Cosa manca?","Olha com atenção. O que falta?","Kijk goed. Wat ontbreekt?","Privește atent. Ce lipsește?","Придивись. Чого бракує?","Κοίτα προσεκτικά. Τι λείπει;","Titta noga. Vad saknas?","仔细看：这里少了什么？","仔細看：這裡少了什麼？","よく見て、何が足りないかな？","자세히 봐요. 무엇이 빠졌을까요?","Perhatikan baik-baik. Apa yang hilang?","Dikkatle bak. Ne eksik?","Nhìn kỹ. Thiếu gì?","Olha com atenção. O que falta?"],
+        "Zakrúžkuj chýbajúcu vec z možností dole a dokresli ju ceruzkou na obrázok.": ["Circle the missing part below and draw it in the picture.","Zakroužkuj chybějící část a dokresli ji do obrázku.","Kreise das fehlende Teil ein und zeichne es ins Bild.","Zakreśl brakującą część i dorysuj ją na obrazku.","Karikázd be a hiányzó részt, és rajzold be a képbe!","Entoure la partie manquante et dessine-la sur l’image.","Rodea la parte que falta y dibújala en la imagen.","Cerchia la parte mancante e disegnala nell’immagine.","Rodeia a parte em falta e desenha-a na imagem.","Omcirkel het ontbrekende deel en teken het op de afbeelding.","Încercuiește partea lipsă și deseneaz-o în imagine.","Обведи відсутню частину й домалюй її.","Κύκλωσε το κομμάτι που λείπει και σχεδίασέ το στην εικόνα.","Ringa in delen som saknas och rita dit den.","从下面的选项里圈出缺少的部分，再把它补画在图上。","從下面的選項裡圈出缺少的部分，再把它補畫在圖上。","下の絵から足りない部分に丸をつけ、絵の中に描き足そう。","아래 보기에서 빠진 부분에 동그라미를 치고 그림에 그려 넣어요.","Lingkari bagian yang hilang di bawah, lalu gambarkan di tempatnya.","Aşağıdaki eksik parçayı yuvarlak içine al ve resme çiz.","Khoanh tròn phần còn thiếu ở bên dưới rồi vẽ phần đó vào hình.","Circule a parte que falta e desenhe-a na imagem."],
+        "Zajačik": ["Bunny","Zajíček","Hase","Królik","Nyuszi","Lapin","Conejo","Coniglietto","Coelho","Konijn","Iepuraș","Зайчик","Λαγουδάκι","Kanin","小兔","小兔","うさぎ","토끼","Kelinci","Tavşan","Thỏ","Coelhinho"],
+        "Uško": ["Ear","Ouško","Ohr","Ucho","Fül","Oreille","Oreja","Orecchio","Orelha","Oor","Ureche","Вухо","Αυτί","Öra","耳朵","耳朵","みみ","귀","Telinga","Kulak","Tai","Orelha"],
+        "Autíčko": ["Car","Auto","Auto","Samochód","Autó","Voiture","Coche","Auto","Carro","Auto","Mașină","Автомобіль","Αυτοκίνητο","Bil","小汽车","小車","くるま","자동차","Mobil","Araba","Ô tô","Carro"],
+        "Koleso": ["Wheel","Kolo","Rad","Koło","Kerék","Roue","Rueda","Ruota","Roda","Wiel","Roată","Колесо","Ρόδα","Hjul","车轮","車輪","タイヤ","바퀴","Roda","Tekerlek","Bánh xe","Roda"],
+        "Domček": ["House","Domeček","Häuschen","Domek","Házikó","Maisonnette","Casita","Casetta","Casinha","Huisje","Căsuță","Будиночок","Σπιτάκι","Hus","小房子","小房子","小さないえ","작은 집","Rumah kecil","Küçük ev","Nhà nhỏ","Casinha"],
+        "Dvere": ["Door","Dveře","Tür","Drzwi","Ajtó","Porte","Puerta","Porta","Porta","Deur","Ușă","Двері","Πόρτα","Dörr","门","門","ドア","문","Pintu","Kapı","Cửa","Porta"],
+        "Kvietok": ["Flower","Květina","Blume","Kwiat","Virág","Fleur","Flor","Fiore","Flor","Bloem","Floare","Квітка","Λουλούδι","Blomma","花","花","はな","꽃","Bunga","Çiçek","Hoa","Flor"],
+        "Lístok": ["Leaf","Lístek","Blatt","Listek","Levélke","Feuille","Hoja","Foglia","Folha","Blad","Frunză","Листочок","Φύλλο","Löv","小叶子","小葉子","はっぱ","나뭇잎","Daun","Yaprak","Lá","Folhinha"],
+        "Rybka": ["Fish","Rybka","Fisch","Rybka","Hal","Poisson","Pez","Pesce","Peixe","Vis","Pește","Рибка","Ψάρι","Fisk","鱼","魚","さかな","물고기","Ikan","Balık","Cá","Peixe"],
+        "Chvostík": ["Tail","Ocásek","Schwanz","Ogon","Farok","Queue","Cola","Coda","Cauda","Staart","Coadă","Хвостик","Ουρά","Svans","尾巴","尾巴","しっぽ","꼬리","Ekor","Kuyruk","Đuôi","Cauda"],
+        "Mačička": ["Cat","Kočka","Katze","Kot","Macska","Chat","Gato","Gatto","Gato","Kat","Pisică","Кіт","Γάτα","Katt","小猫","小貓","ねこ","고양이","Kucing","Kedi","Mèo","Gatinho"],
+        "Fúziky": ["Whiskers","Fousky","Schnurrhaare","Wąsy","Bajusz","Moustaches","Bigotes","Baffi","Bigodes","Snorharen","Mustăți","Вуса","Μουστάκια","Morrhår","胡须","鬍鬚","ひげ","수염","Kumis","Bıyıklar","Râu","Bigodes"],
+        "Slniečko": ["Sun","Slunce","Sonne","Słońce","Nap","Soleil","Sol","Sole","Sol","Zon","Soare","Сонце","Ήλιος","Sol","太阳","太陽","たいよう","해","Matahari","Güneş","Mặt trời","Sol"],
+        "Lúče": ["Rays","Paprsky","Strahlen","Promienie","Sugarak","Rayons","Rayos","Raggi","Raios","Stralen","Raze","Промені","Ακτίνες","Strålar","光芒","光芒","光の線","햇살","Sinar","Işınlar","Tia nắng","Raios"],
+        "Budík": ["Alarm clock","Budík","Wecker","Budzik","Ébresztőóra","Réveil","Despertador","Sveglia","Despertador","Wekker","Ceas deșteptător","Будильник","Ξυπνητήρι","Väckarklocka","闹钟","鬧鐘","めざまし時計","자명종","Jam weker","Çalar saat","Đồng hồ báo thức","Despertador"],
+        "Ručičky": ["Clock hands","Ručičky","Uhrzeiger","Wskazówki","Óramutatók","Aiguilles","Agujas","Lancette","Ponteiros","Wijzers","Limbi de ceas","Стрілки","Δείκτες ρολογιού","Visare","指针","指標","時計の針","시곗바늘","Jarum jam","Saatin akrep ve yelkovanı","Kim đồng hồ","Ponteiros"],
+        "Snehuliak": ["Snowman","Sněhulák","Schneemann","Bałwan","Hóember","Bonhomme de neige","Muñeco de nieve","Pupazzo di neve","Boneco de neve","Sneeuwpop","Om de zăpadă","Сніговик","Χιονάνθρωπος","Snögubbe","雪人","雪人","ゆきだるま","눈사람","Manusia salju","Kardan adam","Người tuyết","Boneco de neve"],
+        "Nos z mrkvy": ["Carrot nose","Nos z mrkve","Möhrennase","Nos z marchewki","Répaorr","Nez en carotte","Nariz de zanahoria","Naso di carota","Nariz de cenoura","Wortelneus","Nas de morcov","Ніс із моркви","Μύτη από καρότο","Morotsnäsa","胡萝卜鼻子","紅蘿蔔鼻子","にんじんの鼻","당근 코","Hidung dari wortel","Havuç burun","Mũi cà rốt","Nariz de cenoura"],
+        "Motýlik": ["Butterfly","Motýl","Schmetterling","Motyl","Pillangó","Papillon","Mariposa","Farfalla","Borboleta","Vlinder","Fluture","Метелик","Πεταλούδα","Fjäril","蝴蝶","蝴蝶","ちょうちょ","나비","Kupu-kupu","Kelebek","Bướm","Borboleta"],
+        "Pravé krídlo": ["Right wing","Pravé křídlo","Rechter Flügel","Prawe skrzydło","Jobb szárny","Aile droite","Ala derecha","Ala destra","Asa direita","Rechtervleugel","Aripa dreaptă","Праве крило","Δεξί φτερό","Höger vinge","右边的翅膀","右邊的翅膀","右の羽","오른쪽 날개","Sayap kanan","Sağ kanat","Cánh phải","Asa direita"],
+        "Stolička": ["Chair","Židle","Stuhl","Krzesło","Szék","Chaise","Silla","Sedia","Cadeira","Stoel","Scaun","Стілець","Καρέκλα","Stol","椅子","椅子","いす","의자","Kursi","Sandalye","Ghế","Cadeira"],
+        "Noha stoličky": ["Chair leg","Noha židle","Stuhlbein","Noga krzesła","Székláb","Pied de chaise","Pata de la silla","Gamba della sedia","Perna da cadeira","Stoelpoot","Picior de scaun","Ніжка стільця","Πόδι καρέκλας","Stolsben","椅子腿","椅子腿","いすの脚","의자 다리","Kaki kursi","Sandalye ayağı","Chân ghế","Perna da cadeira"],
+        "Okuliare": ["Glasses","Brýle","Brille","Okulary","Szemüveg","Lunettes","Gafas","Occhiali","Óculos","Bril","Ochelari","Окуляри","Γυαλιά","Glasögon","眼镜","眼鏡","めがね","안경","Kacamata","Gözlük","Kính mắt","Óculos"],
+        "Sklíčko": ["Lens","Sklo","Brillenglas","Szkiełko","Lencse","Verre","Cristal","Lente","Lente","Glas","Lentilă","Лінза","Φακός","Glas","镜片","鏡片","レンズ","렌즈","Lensa","Gözlük camı","Tròng kính","Lente"],
+        "Hrnček": ["Mug","Hrneček","Becher","Kubek","Bögre","Mug","Taza","Tazza","Caneca","Mok","Cană","Горнятко","Κούπα","Mugg","马克杯","馬克杯","マグカップ","머그잔","Cangkir","Kupa","Cốc","Caneca"],
+        "Uško hrnčeka": ["Mug handle","Ucho hrnku","Tassenhenkel","Ucho kubka","Bögrefül","Anse de la tasse","Asa de la taza","Manico della tazza","Asa da caneca","Oor van de mok","Toarta cănii","Ручка горнятка","Χερούλι κούπας","Muggens öra","杯柄","杯柄","マグカップの持ち手","머그잔 손잡이","Gagang cangkir","Kupa sapı","Quai cốc","Asa da caneca"],
+        "Vláčik": ["Train","Vlak","Zug","Pociąg","Vonat","Train","Tren","Treno","Comboio","Trein","Tren","Потяг","Τρένο","Tåg","火车","火車","電車","기차","Kereta","Tren","Tàu hỏa","Trem"],
+        "Komín": ["Chimney","Komín","Schornstein","Komin","Kémény","Cheminée","Chimenea","Camino","Chaminé","Schoorsteen","Coș de fum","Димар","Καμινάδα","Skorsten","烟囱","煙囪","えんとつ","굴뚝","Cerobong","Baca","Ống khói","Chaminé"],
+        "Nožnice": ["Scissors","Nůžky","Schere","Nożyczki","Olló","Ciseaux","Tijeras","Forbici","Tesoura","Schaar","Foarfecă","Ножиці","Ψαλίδι","Sax","剪刀","剪刀","はさみ","가위","Gunting","Makas","Kéo","Tesoura"],
+        "Čepeľ": ["Blade","Čepel","Klinge","Ostrze","Penge","Lame","Hoja de corte","Lama","Lâmina","Blad","Lamă","Лезо","Λεπίδα","Blad","刀片","刀片","刃","날","Bilah","Pervane kanadı","Cánh quạt","Lâmina"],
+        "Jabĺčko": ["Apple","Jablíčko","Apfel","Jabłko","Alma","Pomme","Manzana","Mela","Maçã","Appel","Măr","Яблуко","Μήλο","Äpple","苹果","蘋果","りんご","사과","Apel","Elma","Táo","Maçã"],
+        "Stopka s lístkom": ["Stalk and leaf","Stopka s lístkem","Stiel mit Blatt","Ogonek z listkiem","Szár levéllel","Queue avec feuille","Rabito con hoja","Picciolo con foglia","Pé com folha","Steeltje met blaadje","Codiță cu frunză","Хвостик із листком","Κοτσάνι με φύλλο","Skaft med blad","果柄和叶子","果柄和葉子","くきと葉っぱ","줄기와 잎","Tangkai dan daun","Sap ve yaprak","Cuống và lá","Pé com folha"],
+        "Sloník": ["Elephant","Sloník","Elefant","Słonik","Elefánt","Éléphant","Elefante","Elefantino","Elefante","Olifant","Elefănțel","Слоненя","Ελεφαντάκι","Elefant","小象","小象","ぞう","코끼리","Gajah","Fil","Voi","Elefante"],
+        "Chobot": ["Trunk","Chobot","Rüssel","Trąba","Ormány","Trompe","Trompa","Proboscide","Tromba","Slurf","Trompă","Хобот","Προβοσκίδα","Snabel","象鼻","象鼻","ぞうの鼻","코끼리 코","Belalai","Hortum","Vòi","Tromba"],
+        "Bicykel": ["Bicycle","Jízdní kolo","Fahrrad","Rower","Kerékpár","Vélo","Bicicleta","Bicicletta","Bicicleta","Fiets","Bicicletă","Велосипед","Ποδήλατο","Cykel","自行车","腳踏車","じてんしゃ","자전거","Sepeda","Bisiklet","Xe đạp","Bicicleta"],
+        "Sedadlo": ["Seat","Sedátko","Sitz","Siodełko","Ülés","Selle","Sillín","Sellino","Selim","Zadel","Șa","Сидіння","Σέλα","Sadel","车座","車座","座るところ","앉는 부분","Tempat duduk","Oturak","Mặt ghế","Selim"],
+        "Vtáčik": ["Bird","Ptáček","Vogel","Ptaszek","Madárka","Oiseau","Pájaro","Uccellino","Passarinho","Vogeltje","Păsărică","Пташка","Πουλάκι","Fågel","小鸟","小鳥","とり","새","Burung","Kuş","Chim","Passarinho"],
+        "Zobáčik": ["Beak","Zobáček","Schnabel","Dziobek","Csőr","Bec","Pico","Becco","Bico","Snavel","Cioc","Дзьобик","Ράμφος","Näbb","鸟嘴","鳥嘴","くちばし","부리","Paruh","Gaga","Mỏ","Bico"],
+        "Korytnačka": ["Turtle","Želva","Schildkröte","Żółw","Teknős","Tortue","Tortuga","Tartaruga","Tartaruga","Schildpad","Broască țestoasă","Черепаха","Χελώνα","Sköldpadda","乌龟","烏龜","かめ","거북이","Kura-kura","Kaplumbağa","Rùa","Tartaruga"],
+        "Pancier": ["Shell","Krunýř","Panzer","Pancerz","Páncél","Carapace","Caparazón","Carapace","Carapaça","Schild","Carapace","Панцир","Καβούκι","Skal","龟壳","龜殼","こうら","등껍질","Cangkang","Kabuk","Vỏ","Carapaça"],
+        "Slimáčik": ["Snail","Šnek","Schnecke","Ślimak","Csiga","Escargot","Caracol","Lumaca","Caracol","Slak","Melc","Равлик","Σαλιγκάρι","Snigel","小蜗牛","小蝸牛","かたつむり","달팽이","Siput","Salyangoz","Ốc sên","Caracol"],
+        "Ulita": ["Snail shell","Ulita","Schneckenhaus","Muszla","Csigaház","Coquille","Concha","Guscio","Concha","Slakkenhuis","Cochilie","Мушля","Κέλυφος","Snäckskal","蜗牛壳","蝸牛殼","かたつむりの殻","달팽이 껍데기","Cangkang siput","Salyangoz kabuğu","Vỏ ốc sên","Concha"],
+        "Dáždnik": ["Umbrella","Deštník","Regenschirm","Parasol","Esernyő","Parapluie","Paraguas","Ombrello","Guarda-chuva","Paraplu","Umbrelă","Парасолька","Ομπρέλα","Paraply","雨伞","雨傘","かさ","우산","Payung","Şemsiye","Ô","Guarda-chuva"],
+        "Rúčka": ["Handle","Držadlo","Griff","Uchwyt","Fogantyú","Poignée","Asa","Manico","Pega","Handvat","Mâner","Ручка","Χερούλι","Handtag","把手","把手","持ち手","손잡이","Gagang","Sap","Tay cầm","Pega"],
+        "Torta": ["Cake","Dort","Torte","Tort","Torta","Gâteau","Tarta","Torta","Bolo","Taart","Tort","Торт","Τούρτα","Tårta","蛋糕","蛋糕","ケーキ","케이크","Kue","Pasta","Bánh kem","Bolo"],
+        "Sviečky": ["Candles","Svíčky","Kerzen","Świeczki","Gyertyák","Bougies","Velas","Candele","Velas","Kaarsjes","Lumânări","Свічки","Κεριά","Ljus","蜡烛","蠟燭","ろうそく","양초","Lilin","Mumlar","Nến","Velas"],
+        "Lietadlo": ["Airplane","Letadlo","Flugzeug","Samolot","Repülő","Avion","Avión","Aereo","Avião","Vliegtuig","Avion","Літак","Αεροπλάνο","Flygplan","飞机","飛機","ひこうき","비행기","Pesawat","Uçak","Máy bay","Avião"],
+        "Veľké krídlo": ["Big wing","Velké křídlo","Großer Flügel","Duże skrzydło","Nagy szárny","Grande aile","Ala grande","Ala grande","Asa grande","Grote vleugel","Aripă mare","Велике крило","Μεγάλο φτερό","Stor vinge","大翅膀","大翅膀","大きな羽","큰 날개","Sayap besar","Büyük kanat","Cánh lớn","Asa grande"],
+        "Malý robot": ["Little robot","Malý robot","Kleiner Roboter","Mały robot","Kis robot","Petit robot","Robot pequeño","Piccolo robot","Robô pequeno","Kleine robot","Robot mic","Малий робот","Μικρό ρομπότ","Liten robot","小机器人","小機器人","小さなロボット","작은 로봇","Robot kecil","Küçük robot","Rô-bốt nhỏ","Robô pequeno"],
+        "Anténka": ["Antenna","Anténka","Antenne","Antena","Antenna","Antenne","Antena","Antenna","Antena","Antenne","Antenă","Антена","Κεραία","Antenn","天线","天線","アンテナ","안테나","Antena","Anten","Ăng-ten","Antena"],
+        "Oči": ["Eyes","Oči","Augen","Oczy","Szemek","Yeux","Ojos","Occhi","Olhos","Ogen","Ochi","Очі","Μάτια","Ögon","眼睛","眼睛","目","눈","Mata","Gözler","Đôi mắt","Olhos"],
+        "Ruky": ["Arms","Ruce","Arme","Ręce","Karok","Bras","Brazos","Braccia","Braços","Armen","Brațe","Руки","Χέρια","Armar","手臂","手臂","うで","팔","Lengan","Kollar","Cánh tay","Braços"],
+        "Na vode": ["On the water","Na vodě","Auf dem Wasser","Na wodzie","A vízen","Sur l’eau","En el agua","Sull’acqua","Na água","Op het water","Pe apă","На воді","Στο νερό","På vattnet","水面上","水面上","水の上","물 위","Di atas air","Su üstünde","Trên mặt nước","Na água"],
+        "Plachta": ["Sail","Plachta","Segel","Żagiel","Vitorla","Voile","Vela","Vela","Vela","Zeil","Velă","Вітрило","Πανί","Segel","帆","帆","帆","돛","Layar","Yelken","Cánh buồm","Vela"],
+        "Stožiar": ["Mast","Stěžeň","Mast","Maszt","Árbóc","Mât","Mástil","Albero","Mastro","Mast","Catarg","Щогла","Κατάρτι","Mast","桅杆","桅杆","帆柱","돛대","Tiang layar","Direk","Cột buồm","Mastro"],
+        "Okienko": ["Porthole","Okénko","Bullauge","Iluminator","Hajóablak","Hublot","Ojo de buey","Oblò","Vigia","Patrijspoort","Hublou","Ілюмінатор","Φινιστρίνι","Ventil","舷窗","舷窗","船の丸い窓","배의 둥근 창문","Jendela kapal","Yuvarlak pencere","Cửa sổ tròn","Vigia"],
+        "Tučniak": ["Penguin","Tučňák","Pinguin","Pingwin","Pingvin","Pingouin","Pingüino","Pinguino","Pinguim","Pinguïn","Pinguin","Пінгвін","Πιγκουίνος","Pingvin","企鹅","企鵝","ペンギン","펭귄","Penguin","Penguen","Chim cánh cụt","Pinguim"],
+        "Krídla": ["Wings","Křídla","Flügel","Skrzydła","Szárnyak","Ailes","Alas","Ali","Asas","Vleugels","Aripi","Крила","Φτερά","Vingar","翅膀","翅膀","羽","날개","Sayap","Kanatlar","Cánh","Asas"],
+        "Nôžky": ["Legs","Nožky","Beine","Nóżki","Lábak","Pattes","Patas","Zampette","Patas","Pootjes","Piciorușe","Ніжки","Ποδαράκια","Ben","腿","腿","あし","다리","Kaki","Bacaklar","Chân","Patas"],
+        "Prasiatko": ["Pig","Prasátko","Schwein","Świnka","Malac","Cochon","Cerdo","Maialino","Porco","Varken","Purcel","Поросятко","Γουρουνάκι","Gris","猪","豬","ぶた","돼지","Babi","Domuz","Lợn","Porco"],
+        "Ušká": ["Ears","Ouška","Ohren","Uszy","Fülek","Oreilles","Orejas","Orecchie","Orelhas","Oren","Urechi","Вушка","Αυτιά","Öron","耳朵","耳朵","みみ","귀","Telinga","Kulaklar","Tai","Orelhas"],
+        "Rypáčik": ["Snout","Rypáček","Schnauze","Ryjek","Ormányka","Groin","Hocico","Grugno","Focinho","Snuit","Rât","П’ятачок","Μουσούδα","Tryne","鼻子","鼻子","突き出た鼻","주둥이","Moncong","Burun","Mõm","Focinho"],
+        "Čajník": ["Teapot","Konvice","Teekanne","Czajniczek","Teáskanna","Théière","Tetera","Teiera","Bule","Theepot","Ceainic","Чайник","Τσαγιέρα","Tekanna","茶壶","茶壺","ティーポット","찻주전자","Teko teh","Çaydanlık","Ấm trà","Bule"],
+        "Pokrievka": ["Lid","Poklička","Deckel","Pokrywka","Fedő","Couvercle","Tapa","Coperchio","Tampa","Deksel","Capac","Кришка","Καπάκι","Lock","锅盖","鍋蓋","ふた","뚜껑","Tutup","Kapak","Nắp","Tampa"],
+        "Gitara": ["Guitar","Kytara","Gitarre","Gitara","Gitár","Guitare","Guitarra","Chitarra","Guitarra","Gitaar","Chitară","Гітара","Κιθάρα","Gitarr","吉他","吉他","ギター","기타","Gitar","Gitar","Đàn ghi-ta","Guitarra"],
+        "Krk": ["Neck","Krk","Hals","Szyjka","Nyak","Manche","Mástil de guitarra","Manico","Braço","Hals","Gât","Гриф","Μπράτσο","Hals","琴颈","琴頸","ギターのさお","기타 목","Leher","Gitar sapı","Cần đàn","Braço"],
+        "Otvor": ["Hole","Otvor","Loch","Otwór","Nyílás","Trou","Agujero","Foro","Orifício","Gat","Gaură","Отвір","Τρύπα","Hål","洞","洞","穴","구멍","Lubang","Delik","Lỗ","Orifício"],
+        "Struny": ["Strings","Struny","Saiten","Struny","Húrok","Cordes","Cuerdas","Corde","Cordas","Snaren","Corzi","Струни","Χορδές","Strängar","琴弦","琴絃","弦","줄","Senar","Teller","Dây đàn","Cordas"],
+        "Batôžtek": ["Backpack","Batůžek","Rucksack","Plecak","Hátizsák","Sac à dos","Mochila","Zaino","Mochila","Rugzak","Rucsac","Рюкзак","Σακίδιο","Ryggsäck","小书包","小書包","リュック","배낭","Ransel","Sırt çantası","Ba lô","Mochila"],
+        "Vrecko": ["Pocket","Kapsa","Tasche","Kieszeń","Zseb","Poche","Bolsillo","Tasca","Bolso","Zak","Buzunar","Кишеня","Τσέπη","Ficka","口袋","口袋","ポケット","주머니","Kantong","Cep","Túi","Bolso"],
+        "Popruhy": ["Straps","Popruhy","Gurte","Szelki","Pántok","Bretelles","Correas","Spallacci","Alças","Banden","Bretele","Лямки","Ιμάντες","Remmar","背带","揹帶","肩ひも","어깨끈","Tali ransel","Askılar","Quai đeo","Alças"],
+        "Hasičské auto": ["Fire engine","Hasičské auto","Feuerwehrauto","Wóz strażacki","Tűzoltóautó","Camion de pompiers","Camión de bomberos","Camion dei pompieri","Carro de bombeiros","Brandweerwagen","Mașină de pompieri","Пожежна машина","Πυροσβεστικό όχημα","Brandbil","消防车","消防車","消防車","소방차","Mobil pemadam kebakaran","İtfaiye aracı","Xe cứu hỏa","Caminhão de bombeiros"],
+        "Kolesá": ["Wheels","Kola","Räder","Koła","Kerekek","Roues","Ruedas","Ruote","Rodas","Wielen","Roți","Колеса","Ρόδες","Hjul","车轮","車輪","車輪","바퀴","Roda","Tekerlekler","Bánh xe","Rodas"],
+        "Rebrík": ["Ladder","Žebřík","Leiter","Drabina","Létra","Échelle","Escalera","Scala","Escada","Ladder","Scară","Драбина","Σκάλα","Stege","梯子","梯子","はしご","사다리","Tangga","Merdiven","Thang","Escada"],
+        "Okno": ["Window","Okno","Fenster","Okno","Ablak","Fenêtre","Ventana","Finestra","Janela","Raam","Fereastră","Вікно","Παράθυρο","Fönster","窗户","窗戶","まど","창문","Jendela","Pencere","Cửa sổ","Janela"],
+        "Labka": ["Paw","Tlapka","Pfote","Łapka","Mancs","Patte","Pata","Zampa","Pata","Poot","Lăbuță","Лапка","Πατουσάκι","Tass","爪子","爪子","足先","동물의 발","Telapak hewan","Pati","Bàn chân con vật","Pata"],
+        "Volant": ["Steering wheel","Volant","Lenkrad","Kierownica","Kormánykerék","Volant","Volante","Volante","Volante","Stuur","Volan","Кермо","Τιμόνι","Ratt","方向盘","方向盤","ハンドル","운전대","Setir","Direksiyon","Vô lăng","Volante"],
+        "Svetlo": ["Light","Světlo","Licht","Światło","Lámpa","Lumière","Luz","Luce","Luz","Licht","Lumină","Світло","Φως","Ljus","车灯","車燈","ライト","조명","Lampu","Far","Đèn","Luz"],
+        "Strecha": ["Roof","Střecha","Dach","Dach","Tető","Toit","Tejado","Tetto","Telhado","Dak","Acoperiș","Дах","Στέγη","Tak","屋顶","屋頂","屋根","지붕","Atap","Çatı","Mái","Telhado"],
+        "Kvetináč": ["Plant pot","Květináč","Blumentopf","Doniczka","Virágcserép","Pot de fleurs","Maceta","Vaso","Vaso","Bloempot","Ghiveci","Горщик","Γλάστρα","Kruka","花盆","花盆","植木ばち","화분","Pot tanaman","Saksı","Chậu cây","Vaso"],
+        "Stonka": ["Stem","Stonek","Stängel","Łodyga","Szár","Tige","Tallo","Gambo","Caule","Stengel","Tulpină","Стебло","Βλαστός","Stjälk","茎","莖","くき","줄기","Batang","Gövde","Thân cây","Caule"],
+        "Očko": ["Eye","Očko","Auge","Oczko","Szem","Œil","Ojo","Occhio","Olho","Oog","Ochișor","Око","Μάτι","Öga","眼睛","眼睛","目","눈","Mata","Göz","Mắt","Olho"],
+        "Plutvička": ["Fin","Ploutvička","Flosse","Płetwa","Uszony","Nageoire","Aleta","Pinna","Barbatana","Vin","Înotătoare","Плавець","Πτερύγιο","Fena","鱼鳍","魚鰭","ひれ","지느러미","Sirip","Yüzgeç","Vây","Barbatana"],
+        "Oblak": ["Cloud","Mrak","Wolke","Chmura","Felhő","Nuage","Nube","Nuvola","Nuvem","Wolk","Nor","Хмара","Σύννεφο","Moln","云","雲","くも","구름","Awan","Bulut","Mây","Nuvem"],
+        "Zvončeky": ["Bells","Zvonečky","Glöckchen","Dzwonki","Csengők","Clochettes","Campanillas","Campanelli","Campainhas","Belletjes","Clopoței","Дзвіночки","Κουδουνάκια","Bjällror","铃铛","鈴鐺","すず","방울","Lonceng","Çanlar","Chuông","Campainhas"],
+        "Nožičky": ["Legs","Nožky","Beine","Nóżki","Lábak","Pattes","Patas","Zampette","Patas","Pootjes","Piciorușe","Ніжки","Ποδαράκια","Ben","腿","腿","脚","다리","Kaki","Ayaklar","Chân","Patas"],
+        "Klobúk": ["Hat","Klobouk","Hut","Kapelusz","Kalap","Chapeau","Sombrero","Cappello","Chapéu","Hoed","Pălărie","Капелюх","Καπέλο","Hatt","帽子","帽子","ぼうし","모자","Topi","Şapka","Mũ","Chapéu"],
+        "Gombíky": ["Buttons","Knoflíky","Knöpfe","Guziki","Gombok","Boutons","Botones","Bottoni","Botões","Knopen","Nasturi","Ґудзики","Κουμπιά","Knappar","纽扣","紐扣","ボタン","단추","Kancing","Düğmeler","Cúc áo","Botões"],
+        "Tykadlá": ["Feelers","Tykadla","Fühler","Czułki","Csápok","Antennes","Antenas","Antenne","Antenas","Voelsprieten","Antene","Вусики","Κεραίες","Känselspröt","触角","觸角","しょっかく","더듬이","Sungut","Duyargalar","Râu","Antenas"],
+        "Hlavička": ["Head","Hlavička","Kopf","Główka","Fej","Tête","Cabeza","Testa","Cabeça","Hoofd","Cap","Голівка","Κεφάλι","Huvud","头","頭","あたま","머리","Kepala","Kafa","Đầu","Cabeça"],
+        "Operadlo": ["Backrest","Opěradlo","Lehne","Oparcie","Háttámla","Dossier","Respaldo","Schienale","Encosto","Rugleuning","Spătar","Спинка","Πλάτη καρέκλας","Ryggstöd","椅背","椅背","背もたれ","등받이","Sandaran","Sırtlık","Tựa lưng","Encosto"],
+        "Vankúš": ["Cushion","Polštář","Kissen","Poduszka","Párna","Coussin","Cojín","Cuscino","Almofada","Kussen","Pernă","Подушка","Μαξιλάρι","Kudde","靠垫","靠墊","クッション","방석","Bantalan","Minder","Đệm","Almofada"],
+        "Rámik": ["Frame","Rámeček","Rahmen","Ramka","Keret","Cadre","Marco","Cornice","Moldura","Lijst","Ramă","Рамка","Κορνίζα","Ram","相框","相框","わく","틀","Rangka","Çerçeve","Khung","Moldura"],
+        "Šnúrka": ["Cord","Šňůrka","Schnur","Sznurek","Zsinór","Ficelle","Cordón","Cordino","Cordão","Koord","Șnur","Шнурок","Κορδόνι","Snöre","绳子","繩子","ひも","끈","Kabel","Kablo","Dây","Cordão"],
+        "Tanierik": ["Saucer","Talířek","Untertasse","Spodek","Csészealj","Soucoupe","Platillo","Piattino","Pires","Schoteltje","Farfurioară","Блюдце","Πιατάκι","Fat","小碟子","小碟子","受け皿","받침 접시","Piring alas","Fincan tabağı","Đĩa lót tách","Pires"],
+        "Lyžička": ["Spoon","Lžička","Löffel","Łyżeczka","Kiskanál","Cuillère","Cucharita","Cucchiaino","Colher","Lepeltje","Linguriță","Ложечка","Κουταλάκι","Sked","小勺","小湯匙","スプーン","숟가락","Sendok","Kaşık","Thìa","Colher"],
+        "Rukoväť": ["Grip","Rukojeť","Handgriff","Rękojeść","Markolat","Manche","Mango","Impugnatura","Cabo","Greep","Mâner de prindere","Руків’я","Λαβή","Grepp","握柄","握柄","にぎり","손잡이","Pegangan","Tutacak","Tay nắm","Cabo"],
+        "Skrutka": ["Screw","Šroub","Schraube","Śruba","Csavar","Vis","Tornillo","Vite","Parafuso","Schroef","Șurub","Гвинт","Βίδα","Skruv","螺丝","螺絲","ねじ","나사","Sekrup","Vida","Vít","Parafuso"],
+        "Kôstka": ["Stone","Pecka","Kern","Pestka","Mag","Noyau","Hueso de la fruta","Nocciolo","Caroço","Pit","Sâmbure","Кісточка","Κουκούτσι","Kärna","果核","果核","石","돌","Batu","Taş","Đá","Caroço"],
+        "Šupka": ["Peel","Slupka","Schale","Skórka","Héj","Peau","Piel","Buccia","Casca","Schil","Coajă","Шкірка","Φλούδα","Skal","果皮","果皮","皮","껍질","Kulit buah","Kabuk","Vỏ","Casca"],
+        "Veľké ucho": ["Big ear","Velké ucho","Großes Ohr","Duże ucho","Nagy fül","Grande oreille","Oreja grande","Orecchio grande","Orelha grande","Groot oor","Ureche mare","Велике вухо","Μεγάλο αυτί","Stort öra","大耳朵","大耳朵","大きな耳","큰 귀","Telinga besar","Büyük kulak","Tai to","Orelha grande"],
+        "Pedál": ["Pedal","Pedál","Pedal","Pedał","Pedál","Pédale","Pedal","Pedale","Pedal","Pedaal","Pedală","Педаль","Πετάλι","Pedal","踏板","踏板","ペダル","페달","Pedal","Pedal","Bàn đạp","Pedal"],
+        "Kormidlo": ["Rudder","Kormidlo","Ruder","Ster","Kormánylapát","Gouvernail","Timón","Timone","Leme","Roer","Cârmă","Стерно","Πηδάλιο","Roder","舵","舵","かじ","방향타","Kemudi","Dümen","Bánh lái","Leme"],
+        "Pierka": ["Feathers","Peříčka","Federn","Piórka","Tollak","Plumes","Plumas","Piume","Penas","Veertjes","Pene","Пір’їнки","Πουπουλάκια","Fjädrar","羽毛","羽毛","羽毛","깃털","Bulu","Tüyler","Lông vũ","Penas"],
+        "Pazúriky": ["Claws","Drápky","Krallen","Pazurki","Karmok","Griffes","Garras","Artigli","Garras","Klauwtjes","Gheruțe","Кігтики","Νυχάκια","Klor","爪子","爪子","つめ","발톱","Cakar","Pençeler","Móng vuốt","Garras"],
+        "Tráva": ["Grass","Tráva","Gras","Trawa","Fű","Herbe","Hierba","Erba","Relva","Gras","Iarbă","Трава","Γρασίδι","Gräs","草","草","草","풀","Rumput","Çimen","Cỏ","Relva"],
+        "Kvapky": ["Drops","Kapky","Tropfen","Krople","Cseppek","Gouttes","Gotas","Gocce","Gotas","Druppels","Picături","Краплі","Σταγόνες","Droppar","水滴","水滴","しずく","물방울","Tetes air","Damlalar","Giọt nước","Gotas"],
+        "Špice": ["Spokes","Dráty kola","Speichen","Szprychy","Küllők","Rayons de roue","Radios","Raggi della ruota","Raios da roda","Spaken","Spițe","Спиці","Ακτίνες τροχού","Ekrar","辐条","輻條","車輪のスポーク","바퀴살","Jari-jari roda","Jant telleri","Nan hoa","Raios da roda"],
+        "Poleva": ["Icing","Poleva","Glasur","Polewa","Cukormáz","Glaçage","Glaseado","Glassa","Cobertura","Glazuur","Glazură","Глазур","Γλάσο","Glasyr","糖霜","糖霜","砂糖がけ","설탕 장식","Lapisan gula","Pasta kreması","Lớp kem phủ bánh","Cobertura"],
+        "Tanier": ["Plate","Talíř","Teller","Talerz","Tányér","Assiette","Plato","Piatto","Prato","Bord","Farfurie","Тарілка","Πιάτο","Tallrik","盘子","盤子","お皿","접시","Piring","Tabak","Đĩa","Prato"],
+        "Vrtuľa": ["Propeller","Vrtule","Propeller","Śmigło","Légcsavar","Hélice","Hélice","Elica","Hélice","Propeller","Elice","Пропелер","Έλικα","Propeller","螺旋桨","螺旋槳","プロペラ","프로펠러","Baling-baling","Pervane","Cánh quạt","Hélice"],
+        "Čo chýba?": ["What’s missing?","Co chybí?","Was fehlt?","Czego brakuje?","Mi hiányzik?","Que manque-t-il ?","¿Qué falta?","Cosa manca?","O que falta?","Wat ontbreekt?","Ce lipsește?","Чого бракує?","Τι λείπει;","Vad saknas?","少了什么？","少了什麼？","何が足りない？","무엇이 빠졌을까요?","Apa yang hilang?","Ne eksik?","Thiếu gì?","O que falta?"],
+        "Výlevka": ["Spout","Hubička","Ausguss","Dziobek czajnika","Kiöntő","Bec verseur","Pico vertedor","Beccuccio","Bico do bule","Tuit","Ciocul ceainicului","Носик чайника","Στόμιο","Pip","壶嘴","壺嘴","注ぎ口","주둥이","Cerat","Ağız","Vòi rót","Bico do bule"]
+      }
+    </script>
+    <script>
+      (() => {
+        const languages = {"sk":"Slovenčina","en":"English","cs":"Čeština","de":"Deutsch","pl":"Polski","hu":"Magyar","fr":"Français","es":"Español","it":"Italiano","pt":"Português","nl":"Nederlands","ro":"Română","uk":"Українська","el":"Ελληνικά","sv":"Svenska","zh-Hans":"简体中文","zh-Hant":"繁體中文","ja":"日本語","ko":"한국어","id":"Bahasa Indonesia","tr":"Türkçe","vi":"Tiếng Việt","pt-BR":"Português (Brasil)"};
+        const codes = Object.keys(languages).slice(1);
+        const shared = {"Jazyk":["Language","Jazyk","Sprache","Język","Nyelv","Langue","Idioma","Lingua","Idioma","Taal","Limbă","Мова","Γλώσσα","Språk","语言","語言","言語","언어","Bahasa","Dil","Ngôn ngữ","Idioma"],"Všetky hry":["All games","Všechny hry","Alle Spiele","Wszystkie gry","Minden játék","Tous les jeux","Todos los juegos","Tutti i giochi","Todos os jogos","Alle spellen","Toate jocurile","Усі ігри","Όλα τα παιχνίδια","Alla spel","全部游戏","全部遊戲","すべてのゲーム","모든 놀이","Semua permainan","Tüm oyunlar","Tất cả trò chơi","Todos os jogos"],"Vytlačiť list":["Print worksheet","Vytisknout list","Arbeitsblatt drucken","Drukuj kartę","Feladatlap nyomtatása","Imprimer la fiche","Imprimir la ficha","Stampa la scheda","Imprimir a ficha","Werkblad afdrukken","Tipărește fișa","Друк завдання","Εκτύπωση φύλλου","Skriv ut arbetsblad","打印练习单","列印學習單","ワークシートを印刷","활동지 인쇄","Cetak lembar aktivitas","Çalışma sayfasını yazdır","In phiếu bài tập","Imprimir atividade"],"Vytlačiť hry":["Print games","Vytisknout hry","Spiele drucken","Drukuj gry","Játékok nyomtatása","Imprimer les jeux","Imprimir los juegos","Stampa i giochi","Imprimir os jogos","Spellen afdrukken","Tipărește jocurile","Друк ігор","Εκτύπωση παιχνιδιών","Skriv ut spelen","打印游戏","列印遊戲","ゲームを印刷","놀이 인쇄","Cetak permainan","Oyunları yazdır","In trò chơi","Imprimir os jogos"],"Vytvoril Milan Jankovec":["Created by Milan Jankovec","Vytvořil Milan Jankovec","Erstellt von Milan Jankovec","Autor: Milan Jankovec","Készítette: Milan Jankovec","Créé par Milan Jankovec","Creado por Milan Jankovec","Creato da Milan Jankovec","Criado por Milan Jankovec","Gemaakt door Milan Jankovec","Creat de Milan Jankovec","Автор: Milan Jankovec","Δημιουργός: Milan Jankovec","Skapat av Milan Jankovec","作者：Milan Jankovec","作者：Milan Jankovec","制作 Milan Jankovec","제작 Milan Jankovec","Dibuat oleh Milan Jankovec","Hazırlayan Milan Jankovec","Tác giả Milan Jankovec","Criado por Milan Jankovec"],"Úloha":["Task","Úkol","Aufgabe","Zadanie","Feladat","Exercice","Ejercicio","Esercizio","Exercício","Opdracht","Exercițiu","Завдання","Άσκηση","Uppgift","任务","任務","問題","문제","Tugas","Görev","Nhiệm vụ","Exercício"],"Výber":["Choices","Výběr","Auswahl","Wybór","Választék","Choix","Opciones","Opzioni","Opções","Keuzes","Opțiuni","Варіанти","Επιλογές","Alternativ","选项","選項","選択肢","보기","Pilihan","Seçenekler","Các lựa chọn","Opções"],"Koľko?":["How many?","Kolik?","Wie viele?","Ile?","Hány?","Combien ?","¿Cuántos?","Quanti?","Quantos?","Hoeveel?","Câte?","Скільки?","Πόσα;","Hur många?","有多少？","有多少？","いくつ？","몇 개일까요?","Berapa banyak?","Kaç tane?","Có bao nhiêu?","Quantos?"],"Nové úlohy":["New activities","Nové úkoly","Neue Aufgaben","Nowe zadania","Új feladatok","Nouveaux exercices","Nuevos ejercicios","Nuovi esercizi","Novos exercícios","Nieuwe opdrachten","Exerciții noi","Нові завдання","Νέες ασκήσεις","Nya uppgifter","换一组题目","換一組題目","新しい問題","새 문제","Aktivitas baru","Yeni etkinlikler","Bài tập mới","Novos exercícios"],"Nové obrázky":["New pictures","Nové obrázky","Neue Bilder","Nowe obrazki","Új képek","Nouvelles images","Nuevas imágenes","Nuove immagini","Novas imagens","Nieuwe afbeeldingen","Imagini noi","Нові малюнки","Νέες εικόνες","Nya bilder","换一组图片","換一組圖片","新しい絵","새 그림","Gambar baru","Yeni resimler","Hình mới","Novas imagens"],"Späť na hry":["Back to games","Zpět ke hrám","Zurück zu den Spielen","Wróć do gier","Vissza a játékokhoz","Retour aux jeux","Volver a los juegos","Torna ai giochi","Voltar aos jogos","Terug naar de spellen","Înapoi la jocuri","Назад до ігор","Πίσω στα παιχνίδια","Tillbaka till spelen","返回游戏列表","返回遊戲列表","ゲーム一覧へ戻る","게임 목록으로 돌아가기","Kembali ke daftar permainan","Oyunlara dön","Quay lại danh sách trò chơi","Voltar aos jogos"],"Pracovný list":["Worksheet","Pracovní list","Arbeitsblatt","Karta pracy","Feladatlap","Fiche d’activité","Ficha de actividades","Scheda di attività","Ficha de atividades","Werkblad","Fișă de lucru","Робочий аркуш","Φύλλο εργασίας","Arbetsblad","练习单","學習單","ワークシート","활동지","Lembar aktivitas","Çalışma sayfası","Phiếu bài tập","Folha de atividade"]};
+        const messages = JSON.parse(document.getElementById("game-translations").textContent);
+        const preferenceKey = "hrave-listy-language";
+        const current = new URL(location.href);
+        const resolveLanguage = code => Object.keys(languages).find(key => key.toLowerCase() === code?.toLowerCase());
+        let saved;
+        try { saved = localStorage.getItem(preferenceKey); } catch {}
+        const requested = resolveLanguage(current.searchParams.get("lang"));
+        const language = requested ?? resolveLanguage(saved) ?? "en";
+        const column = codes.indexOf(language);
+
+        function remember(code) {
+          try { localStorage.setItem(preferenceKey, code); } catch {}
+        }
+
+        function localizedUrl(href, code) {
+          const url = new URL(href, location.href);
+          url.searchParams.set("lang", code);
+          return url;
+        }
+
+        function translate(value) {
+          if (language === "sk" || !value) return value;
+          const key = value.trim().replace(/\s+/g, " ");
+          const exact = (messages[key] ?? shared[key])?.[column];
+          if (exact !== undefined) return exact;
+          const numbered = key.match(/^(\d+\.\s+)(.+)$/u);
+          if (numbered) return numbered[1] + translate(numbered[2]);
+          const colon = key.indexOf(":");
+          if (colon > 0) {
+            const label = key.slice(0, colon);
+            const tail = key.slice(colon + 1).trim();
+            const translatedLabel = translate(label);
+            const translatedTail = translate(tail);
+            if (label !== translatedLabel || tail !== translatedTail) {
+              return translatedLabel + ":" + (tail ? " " + translatedTail : "");
+            }
+          }
+          if (key.includes(" | ")) return key.split(" | ").map(translate).join(" | ");
+          if (key.includes(", ")) {
+            const parts = key.split(", ");
+            const translated = parts.map(translate).join(", ");
+            if (translated !== key) return translated;
+          }
+          return value;
+        }
+
+        window.HraveListy = { language, t: translate };
+        document.documentElement.lang = language;
+        if (requested) remember(language);
+
+        const visitedText = new WeakSet();
+        const visitedElements = new WeakSet();
+        const skipped = "script, style, [data-no-l10n]";
+
+        function translateText(node) {
+          if (visitedText.has(node) || node.parentElement?.closest(skipped)) return;
+          visitedText.add(node);
+          const content = node.data.trim();
+          const translated = translate(content);
+          if (content !== translated) node.data = node.data.replace(content, translated);
+        }
+
+        function translateAttributes(element) {
+          if (visitedElements.has(element) || element.closest(skipped)) return;
+          visitedElements.add(element);
+          for (const attribute of ["aria-label", "title", "placeholder"]) {
+            const value = element.getAttribute(attribute);
+            if (value) element.setAttribute(attribute, translate(value));
+          }
+        }
+
+        function translateTree(root) {
+          if (root.nodeType === Node.TEXT_NODE) {
+            translateText(root);
+            return;
+          }
+          if (root.nodeType !== Node.ELEMENT_NODE || root.closest(skipped)) return;
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+          while (walker.nextNode()) translateText(walker.currentNode);
+          translateAttributes(root);
+          root.querySelectorAll("[aria-label], [title], [placeholder]").forEach(translateAttributes);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+          const picker = document.getElementById("worksheet-language");
+          for (const [code, name] of Object.entries(languages)) {
+            const option = new Option(name, code);
+            option.lang = code;
+            option.setAttribute("data-no-l10n", "");
+            picker.add(option);
+          }
+          picker.value = language;
+          const menu = document.getElementById("related-games");
+          if (menu) {
+            const catalog = menu.closest("nav").querySelector(".catalog-link").href;
+            const currentPage = current.pathname.endsWith("/") ? new URL("index.html", current).pathname : current.pathname;
+            for (const game of [{"path":"games/roads/index.html","title":"Detské cestičky","names":["Little mazes","Dětské cestičky","Kleine Labyrinthe","Małe labirynty","Kis útvesztők","Petits labyrinthes","Pequeños laberintos","Piccoli labirinti","Pequenos labirintos","Kleine doolhoven","Mici labirinturi","Маленькі лабіринти","Μικροί λαβύρινθοι","Små labyrinter","小小迷宫","小小迷宮","かんたん迷路","쉬운 미로","Labirin sederhana","Küçük labirentler","Mê cung nhỏ","Pequenos labirintos"]},{"path":"games/collector/index.html","title":"Bludisko so zberom odmien","names":["Star hunt maze","Bludiště se sbíráním hvězdiček","Sternensuche im Labyrinth","Labirynt z gwiazdkami","Csillaggyűjtő útvesztő","Labyrinthe aux étoiles","Laberinto de estrellas","Labirinto delle stelline","Labirinto de estrelas","Sterrenjacht in het doolhof","Labirintul steluțelor","Лабіринт із зірочками","Λαβύρινθος με αστεράκια","Stjärnjakt i labyrinten","寻找星星的迷宫","尋找星星的迷宮","星集め迷路","별 모으기 미로","Labirin berburu bintang","Yıldız avı labirenti","Mê cung tìm sao","Labirinto de estrelas"]},{"path":"games/direction-maze/index.html","title":"Labyrint so šípkami","names":["Arrow maze","Bludiště se šipkami","Pfeillabyrinth","Labirynt ze strzałkami","Nyilas útvesztő","Labyrinthe fléché","Laberinto de flechas","Labirinto con frecce","Labirinto de setas","Pijldoolhof","Labirint cu săgeți","Лабіринт зі стрілками","Λαβύρινθος με βέλη","Pillabyrint","箭头迷宫","箭頭迷宮","矢印迷路","화살표 미로","Labirin panah","Ok labirenti","Mê cung mũi tên","Labirinto de setas"]},{"path":"games/tangled/index.html","title":"Popletené šnúrky","names":["Tangled strings","Zamotané provázky","Verhedderte Schnüre","Poplątane sznurki","Összegubancolódott zsinórok","Ficelles emmêlées","Cuerdas enredadas","Fili aggrovigliati","Fios emaranhados","Verwarde touwtjes","Sfori încâlcite","Заплутані мотузочки","Μπερδεμένα κορδόνια","Trassliga snören","缠在一起的线","纏在一起的線","からまったひも","엉킨 끈","Tali kusut","Dolaşmış ipler","Những sợi dây rối","Fios emaranhados"]},{"path":"games/non-crossing-paths/index.html","title":"Cestičky bez križovania","names":["Paths That Don’t Cross","Cestičky bez křížení","Wege ohne Kreuzung","Ścieżki bez skrzyżowań","Kereszteződés nélküli utak","Des chemins qui ne se croisent pas","Caminos sin cruces","Percorsi senza incroci","Caminhos sem cruzamentos","Paden zonder kruisingen","Drumuri fără intersecții","Стежки без перетинів","Μονοπάτια χωρίς διασταυρώσεις","Vägar som inte korsas","路线不交叉","路線不交叉","交わらない道","서로 만나지 않는 길","Jalur Tanpa Persilangan","Kesişmeyen Yollar","Các đường không giao nhau","Caminhos sem cruzamentos"]},{"path":"games/complete-the-road/index.html","title":"Doplň chýbajúcu cestu","names":["Complete the Road","Doplň chybějící cestu","Ergänze das Straßenstück","Uzupełnij drogę","Egészítsd ki az utat","Complète la route","Completa el camino","Completa la strada","Completa a estrada","Maak de weg af","Completează drumul","Доповни дорогу","Συμπλήρωσε τον δρόμο","Gör vägen hel","补上缺失的路段","補上缺少的路段","道の続きをつくろう","빠진 길을 이어요","Lengkapi Jalannya","Eksik Yolu Tamamla","Nối đoạn đường còn thiếu","Complete a estrada"]},{"path":"games/shortest-delivery/index.html","title":"Najkratší rozvoz","names":["Shortest Delivery Route","Nejkratší rozvoz","Der kürzeste Lieferweg","Najkrótsza dostawa","A legrövidebb szállítási út","La livraison la plus courte","La ruta de reparto más corta","La consegna più breve","A entrega pelo caminho mais curto","De kortste bezorgroute","Cel mai scurt drum de livrare","Найкоротша доставка","Η πιο σύντομη παράδοση","Kortaste leveransvägen","最短送货路线","最短送貨路線","いちばん短い配達の道","가장 짧은 배달길","Rute Antar Terpendek","En Kısa Teslimat Yolu","Đường giao hàng ngắn nhất","O caminho mais curto para a entrega"]},{"path":"games/pattern-path/index.html","title":"Cestička podľa vzoru","names":["Follow the pattern path","Cestička podle vzoru","Musterpfad","Ścieżka według wzoru","Ösvény a minta szerint","Le chemin des motifs","Camino de patrones","Il percorso dei simboli","Caminho do padrão","Het patronenpad","Drumul după model","Стежка за зразком","Μονοπάτι με μοτίβο","Mönsterstigen","按规律找路","按規律找路","もようの道","규칙을 따라 길 찾기","Jalur berpola","Desen yolu","Đường đi theo mẫu","Caminho do padrão"]},{"path":"games/tunnel-train/index.html","title":"Vláčik v tuneloch","names":["Train through tunnels","Vláček v tunelech","Zug durch die Tunnel","Pociąg w tunelach","Vonat az alagutakban","Le train dans les tunnels","El tren en los túneles","Trenino in galleria","Comboio nos túneis","Treintje door de tunnels","Trenul prin tuneluri","Потяг у тунелях","Τρενάκι στις σήραγγες","Tåget genom tunnlarna","小火车穿隧道","小火車穿隧道","トンネルをぬける電車","터널을 지나는 기차","Kereta di terowongan","Tünellerdeki tren","Tàu qua đường hầm","Trenzinho nos túneis"]},{"path":"games/tracing/index.html","title":"Grafomotorické dráhy","names":["Pencil tracing paths","Grafomotorické dráhy","Schwungübungen","Szlaczki do rysowania","Vonalvezető pályák","Chemins à tracer","Caminos para repasar","Percorsi da ripassare","Caminhos para traçar","Lijnen om over te trekken","Trasee de urmărit cu creionul","Доріжки для обведення","Διαδρομές με μολύβι","Rita längs linjerna","沿线描画","沿線描畫","線をなぞろう","선 따라 그리기","Menelusuri jalur dengan pensil","Çizgilerin üzerinden geç","Tô theo đường nét","Caminhos para contornar"]},{"path":"games/shapes/index.html","title":"Obkresľovanie tvarov","names":["Trace the shapes","Obtahování tvarů","Formen nachzeichnen","Rysowanie po konturach","Formák átrajzolása","Tracer les formes","Repasar las formas","Ripassare le forme","Traçar formas","Vormen overtrekken","Contururi de trasat","Обведи фігури","Πέρασε πάνω από τα σχήματα","Följ formernas konturer","描画图形","描畫圖形","形をなぞろう","모양 따라 그리기","Jiplak bentuk","Şekillerin üzerinden geç","Tô theo hình","Traçar formas"]},{"path":"games/dots/index.html","title":"Spájanie bodiek","names":["Connect the dots","Spojování teček","Punkte verbinden","Łączenie kropek","Pontok összekötése","Relier les points","Unir los puntos","Unisci i puntini","Ligar os pontos","Verbind de stippen","Unește punctele","З’єднай крапки","Ένωσε τις τελείες","Dra streck mellan prickarna","按序连点","按序連點","点つなぎ","점 잇기","Hubungkan titik-titik","Noktaları birleştir","Nối các chấm","Ligar os pontos"]},{"path":"games/mirror/index.html","title":"Zrkadlová hra","names":["Mirror drawing","Zrcadlové kreslení","Spiegelbilder","Rysowanie lustrzane","Tükörrajz","Dessin en miroir","Dibujo en espejo","Disegno a specchio","Desenho em espelho","Spiegeltekenen","Desen în oglindă","Дзеркальний малюнок","Κατοπτρική ζωγραφική","Spegelbilder","对称绘画","對稱繪畫","鏡うつしのお絵かき","거울 그림","Gambar cermin","Aynadaki resmi çiz","Vẽ đối xứng","Desenho em espelho"]},{"path":"games/symbol-colouring/index.html","title":"Vyfarbi podľa značiek","names":["Colour by Symbol","Vybarvování podle značek","Malen nach Symbolen","Kolorowanie według symboli","Színezés jelek szerint","Coloriage par symboles","Colorea según los símbolos","Colora con i simboli","Pinta pelos símbolos","Kleuren op symbool","Colorează după simboluri","Розфарбуй за символами","Χρωμάτισε με σύμβολα","Färglägg efter symboler","按符号涂色","依符號著色","マークを見て色ぬり","기호대로 색칠하기","Mewarnai Sesuai Simbol","Sembollere Göre Boya","Tô màu theo ký hiệu","Pinte pelos símbolos"]},{"path":"games/cut-out-puzzles/index.html","title":"Papierové puzzle","names":["Cut-out Puzzles","Vystřihni a slož","Ausschneiden und puzzeln","Wytnij i ułóż","Kivágós kirakó","Puzzles à découper","Puzles para recortar","Puzzle da ritagliare","Puzzles para recortar","Knippen en puzzelen","Decupează și potrivește","Виріж і склади","Παζλ για κόψιμο","Klipp och pussla","剪一剪，拼一拼","剪一剪，拼一拼","切って作るパズル","오려서 퍼즐 맞추기","Teka-teki Gunting dan Susun","Kes ve Birleştir","Cắt và ghép hình","Quebra-cabeças para recortar"]},{"path":"games/shape-builders/index.html","title":"Poskladaj obrázok z tvarov","names":["Build with Shapes","Skládání z tvarů","Bilder aus Formen","Układanie z kształtów","Kép formákból","Images en formes","Construye con formas","Componi con le forme","Constrói com formas","Bouwen met vormen","Construiește din forme","Склади малюнок із фігур","Φτιάξε εικόνες με σχήματα","Bygg med former","用图形拼图片","用圖形拼圖片","形を組み合わせよう","도형으로 그림 만들기","Menyusun Bentuk","Şekillerle Resim Yap","Ghép tranh bằng các hình","Monte com formas"]},{"path":"games/cutting-lines/index.html","title":"Strihaj po čiare","names":["Cut along the lines","Stříhej po čáře","Schneide entlang der Linien","Tnij wzdłuż linii","Vágj a vonal mentén","Découpe le long des lignes","Recorta por las líneas","Ritaglia lungo le linee","Recorta pelas linhas","Knip langs de lijnen","Decupează pe linii","Вирізай по лініях","Κόψε πάνω στις γραμμές","Klipp längs linjerna","沿着线剪","沿著線剪","線にそって切ろう","선을 따라 잘라요","Gunting mengikuti garis","Çizgiler boyunca kes","Cắt theo đường kẻ","Recorte pelas linhas"]},{"path":"games/paper-folding/index.html","title":"Skladaj podľa záhybov","names":["Fold along the Lines","Skládej podle ohybů","Falten entlang der Linien","Składaj wzdłuż linii","Hajtogass a vonalak mentén","Plie le long des lignes","Dobla por las líneas","Piega lungo le linee","Dobra pelas linhas","Vouw langs de lijnen","Îndoaie pe linii","Згинай за лініями","Δίπλωσε στις γραμμές","Vik längs linjerna","沿线折纸","沿線摺紙","線にそっておろう","접는 선을 따라 접어요","Lipat Mengikuti Garis","Çizgilerden Katla","Gấp theo nếp","Dobre pelas linhas"]},{"path":"games/mix-colours/index.html","title":"Zmiešaj farby","names":["Mix the Colours","Smíchej barvy","Misch die Farben","Zmieszaj kolory","Keverd a színeket","Mélange les couleurs","Mezcla los colores","Mescola i colori","Mistura as cores","Meng de kleuren","Amestecă culorile","Змішай кольори","Ανάμειξε τα χρώματα","Blanda färgerna","混合颜色","混合顏色","色をまぜよう","색을 섞어 봐요","Campur Warnanya","Renkleri Karıştır","Pha màu","Misture as cores"]},{"path":"games/one-stroke/index.html","title":"Jedným ťahom","names":["One Stroke","Jedním tahem","In einem Zug","Jednym pociągnięciem","Egyetlen vonással","D’un seul trait","De un solo trazo","Con un solo tratto","De um só traço","In één beweging","Dintr-o singură mișcare","Одним рухом","Μονοκοντυλιά","Med ett enda streck","一笔画","一筆畫","ひとふででかこう","한 번에 그려요","Satu Tarikan","Tek Çizgide","Vẽ một nét","Com um só traço"]},{"path":"games/count-match/index.html","title":"Spočítaj a zakrúžkuj číslo","names":["Count and Circle the Number","Spočítej a zakroužkuj číslo","Zähle und kreise die Zahl ein","Policz i zakreśl liczbę","Számold meg, és karikázd be a számot","Compte et entoure le nombre","Cuenta y rodea el número","Conta e cerchia il numero","Conta e rodeia o número","Tel en omcirkel het getal","Numără și încercuiește numărul","Полічи й обведи число","Μέτρησε και κύκλωσε τον αριθμό","Räkna och ringa in talet","数一数，圈出数字","數一數，圈出數字","数えて数字に丸をつけよう","세고 숫자에 동그라미","Hitung dan lingkari angka","Say ve doğru sayıyı yuvarlak içine al","Đếm và khoanh tròn số","Conte e circule o número"]},{"path":"games/dot-counting/index.html","title":"Urob toľko bodiek","names":["Make That Many Dots","Udělej tolik teček","So viele Punkte","Zrób tyle kropek","Rajzolj ennyi pöttyöt","Fais autant de points","Haz esa cantidad de puntitos","Fai tanti puntini","Faz essa quantidade de bolinhas","Maak zoveel stippen","Fă tot atâtea puncte","Намалюй стільки крапок","Κάνε τόσες τελείες","Gör så många prickar","按数字画圆点","依數字畫圓點","数字のぶんだけ点を描こう","숫자만큼 점 찍기","Buat titik sesuai angka","Sayı kadar nokta çiz","Chấm đúng số chấm","Faça bolinhas de acordo com o número"]},{"path":"games/ispy/index.html","title":"Hľadaj a spočítaj","names":["Find and Count","Hledej a spočítej","Suchen und zählen","Znajdź i policz","Keresd meg és számold meg","Cherche et compte","Busca y cuenta","Cerca e conta","Procura e conta","Zoek en tel","Caută și numără","Знайди й полічи","Βρες και μέτρησε","Hitta och räkna","找一找，数一数","找一找，數一數","探して数えよう","찾아서 세기","Cari dan hitung","Bul ve say","Tìm và đếm","Encontre e conte"]},{"path":"games/big-small/index.html","title":"Veľký a malý","names":["Big and Small","Velký a malý","Groß und klein","Duży i mały","Nagy és kicsi","Grand et petit","Grande y pequeño","Grande e piccolo","Grande e pequeno","Groot en klein","Mare și mic","Великий і малий","Μεγάλο και μικρό","Stort och litet","比大小","比大小","大きい・小さい","크다, 작다","Besar dan kecil","Büyük ve küçük","To và nhỏ","Grande e pequeno"]},{"path":"games/compare-counts/index.html","title":"Viac, menej alebo rovnako","names":["More, fewer or the same","Více, méně nebo stejně","Mehr, weniger oder gleich viel","Więcej, mniej czy tyle samo","Több, kevesebb vagy ugyanannyi","Plus, moins ou autant","Más, menos o igual","Di più, di meno o uguale","Mais, menos ou igual","Meer, minder of evenveel","Mai multe, mai puține sau tot atâtea","Більше, менше чи порівну","Περισσότερα, λιγότερα ή ίσα","Fler, färre eller lika många","更多、更少还是一样多","更多、更少還是一樣多","多い・少ない・同じ","더 많다, 더 적다, 같다","Lebih banyak, lebih sedikit, atau sama","Daha çok, daha az ya da eşit","Nhiều hơn, ít hơn hay bằng nhau","Mais, menos ou igual"]},{"path":"games/share-fairly/index.html","title":"Rozdeľ spravodlivo","names":["Share fairly","Rozděl spravedlivě","Teile gerecht","Podziel po równo","Oszd el igazságosan","Partage équitablement","Reparte por igual","Dividi in parti uguali","Divide por igual","Verdeel eerlijk","Împarte în mod egal","Поділи порівну","Μοίρασε δίκαια","Dela rättvist","平均分一分","平均分一分","同じ数に分けよう","똑같이 나누기","Bagi sama rata","Eşit paylaştır","Chia đều","Divida por igual"]},{"path":"games/measure-with-blocks/index.html","title":"Zmeraj kockami","names":["Measure with blocks","Změř kostkami","Mit Klötzchen messen","Zmierz klockami","Mérj kockákkal","Mesurer avec des cubes","Medir con bloques","Misurare con i cubetti","Medir com blocos","Met blokjes meten","Măsoară cu cuburi","Виміряй кубиками","Μέτρησε με κυβάκια","Mät med klossar","用积木测量","用積木測量","つみきではかろう","블록으로 길이 재기","Ukur dengan balok","Bloklarla ölç","Đo bằng khối vuông","Medir com blocos"]},{"path":"games/picture-graph/index.html","title":"Obrázkový graf","names":["Picture graph","Obrázkový graf","Bilderdiagramm","Wykres obrazkowy","Képes diagram","Graphique en images","Gráfico de imágenes","Grafico degli animali","Gráfico de imagens","Plaatjesgrafiek","Grafic cu imagini","Графік з малюнками","Γράφημα με εικόνες","Bilddiagram","图画统计图","圖畫統計圖","絵のグラフ","그림 그래프","Grafik gambar","Resimli grafik","Biểu đồ hình ảnh","Gráfico de figuras"]},{"path":"games/little-shop/index.html","title":"Malý obchod","names":["Little shop","Malý obchod","Kleiner Laden","Mały sklep","Kis bolt","Petit magasin","Pequeña tienda","Piccolo negozio","Lojinha","Winkeltje","Magazinul cel mic","Маленька крамничка","Μικρό μαγαζί","Lilla affären","小商店","小商店","小さなおみせ","작은 가게","Toko kecil","Küçük dükkân","Cửa hàng nhỏ","Lojinha"]},{"path":"games/dice-race/index.html","title":"Preteky s kockou","names":["Dice race","Závod s kostkou","Würfelrennen","Wyścig z kostką","Dobókockás verseny","Course aux dés","Carrera con dado","Corsa con il dado","Corrida com dado","Dobbelrace","Cursa cu zarul","Перегони з кубиком","Αγώνας με ζάρι","Tärningsrace","骰子赛跑","骰子賽跑","さいころレース","주사위 경주","Balap dadu","Zar yarışı","Đua xúc xắc","Corrida com dado"]},{"path":"games/add-or-take/index.html","title":"Pridaj alebo uber","names":["Add or take away","Přidej nebo uber","Dazu oder weg","Dodaj lub zabierz","Adj hozzá vagy vegyél el","Ajoute ou enlève","Suma o quita","Aggiungi o togli","Junta ou tira","Erbij of eraf","Adaugă sau ia","Додай або забери","Πρόσθεσε ή βγάλε","Lägg till eller ta bort","加一加，减一减","加一加，減一減","たそう、ひこう","더하거나 빼요","Tambah atau kurangi","Ekle veya çıkar","Thêm hoặc bớt","Some ou tire"]},{"path":"games/balance-scale/index.html","title":"Vyrovnaj váhu","names":["Balance the scale","Vyrovnej váhy","Bring die Waage ins Gleichgewicht","Zrównoważ wagę","Egyensúlyozd ki a mérleget","Équilibre la balance","Equilibra la balanza","Bilancia i piatti","Equilibra a balança","Breng de weegschaal in balans","Echilibrează balanța","Урівноваж терези","Ισορρόπησε τη ζυγαριά","Balansera vågen","让天平平衡","讓天平平衡","てんびんをつりあわせよう","저울 맞추기","Seimbangkan timbangan","Teraziyi dengele","Cân bằng cân","Equilibre a balança"]},{"path":"games/patterns/index.html","title":"Doplň logický rad","names":["Complete the pattern","Doplň logickou řadu","Ergänze die Bilderreihe","Uzupełnij ciąg obrazków","Egészítsd ki a képsort","Complète la suite d’images","Completa la serie","Completa la sequenza","Completa a sequência","Maak de reeks af","Completează șirul","Доповни ряд","Συμπλήρωσε το μοτίβο","Fyll i mönstret","补全图案规律","補全圖案規律","絵の続きを見つけよう","규칙에 맞게 채우기","Lengkapi pola","Örüntüyü tamamla","Điền tiếp quy luật","Complete a sequência"]},{"path":"games/odd-one-out/index.html","title":"Čo sem nepatrí?","names":["Which one doesn’t belong?","Co sem nepatří?","Was passt nicht dazu?","Co tu nie pasuje?","Melyik nem illik ide?","Quel est l’intrus ?","¿Cuál no encaja?","Qual è l’intruso?","Qual é o intruso?","Welke hoort er niet bij?","Care nu se potrivește?","Що зайве?","Ποιο δεν ταιριάζει;","Vilken passar inte in?","哪个不属于这一组？","哪個不屬於這一組？","仲間はずれはどれ？","나머지와 다른 그림은?","Mana yang tidak sekelompok?","Hangisi gruba ait değil?","Hình nào khác nhóm?","Qual não faz parte do grupo?"]},{"path":"games/sorting/index.html","title":"Zotriedenie do košíkov","names":["Sort into Baskets","Třídění do košíků","In Körbe sortieren","Sortowanie do koszyków","Válogatás kosarakba","Trie dans les paniers","Clasifica en cestas","Dividi nei cestini","Separa pelos cestos","Sorteer in mandjes","Sortează în coșuri","Сортування в кошики","Ταξινόμησε σε καλάθια","Sortera i korgar","分到不同篮子里","分到不同籃子裡","かごに分けよう","바구니에 나누어 담기","Kelompokkan ke dalam keranjang","Sepetlere ayır","Xếp vào giỏ","Separe nas cestas"]},{"path":"games/shadows/index.html","title":"Spájanie tieňov","names":["Shadow Matching","Spojování stínů","Schatten zuordnen","Dopasowywanie cieni","Árnyékpárosító","Associe les ombres","Empareja las sombras","Abbina le ombre","Encontra as sombras","Zoek de schaduwen","Potrivește umbrele","Знайди тіні","Αντιστοίχισε τις σκιές","Matcha skuggor","找影子","找影子","影を見つけよう","그림자 짝 찾기","Cocokkan bayangan","Gölgeleri eşleştir","Ghép bóng","Encontre as sombras"]},{"path":"games/whats-missing/index.html","title":"Čo chýba na obrázku?","names":["What’s missing?","Co chybí na obrázku?","Was fehlt im Bild?","Czego brakuje na obrazku?","Mi hiányzik a képről?","Que manque-t-il dans l’image ?","¿Qué falta en el dibujo?","Cosa manca nell’immagine?","O que falta na imagem?","Wat ontbreekt op de afbeelding?","Ce lipsește din imagine?","Чого бракує на малюнку?","Τι λείπει από την εικόνα;","Vad saknas i bilden?","图上少了什么？","圖上少了什麼？","何が足りない？","무엇이 빠졌을까요?","Apa yang hilang?","Ne eksik?","Thiếu gì?","O que falta na imagem?"]},{"path":"games/memory-cards/index.html","title":"Pexeso na vystrihnutie","names":["Cut-out matching cards","Pexeso k vystřižení","Memory-Karten zum Ausschneiden","Karty do gry w pary","Kivágható memóriajáték","Jeu de mémoire à découper","Juego de memoria para recortar","Carte del memory da ritagliare","Jogo da memória para recortar","Memorykaartjes om uit te knippen","Joc de memorie de decupat","Картки для гри в пари","Κάρτες μνήμης για κόψιμο","Memorykort att klippa ut","剪卡片，找对子","剪卡片，找對子","切って遊ぶ絵合わせカード","오려 쓰는 짝 맞추기 카드","Kartu pasangan untuk digunting","Kes ve eşleştir","Cắt thẻ tìm cặp","Jogo da memória para recortar"]},{"path":"games/same-picture/index.html","title":"Nájdi rovnaký obrázok","names":["Find the identical picture","Najdi stejný obrázek","Finde das gleiche Bild","Znajdź taki sam obrazek","Keresd meg az egyforma képet","Trouve l’image identique","Encuentra el dibujo idéntico","Trova l’immagine uguale","Encontra a imagem igual","Vind het gelijke plaatje","Găsește imaginea identică","Знайди однаковий малюнок","Βρες την ίδια εικόνα","Hitta samma bild","找出一模一样的图片","找出一模一樣的圖片","同じ絵を探そう","똑같은 그림 찾기","Cari gambar yang sama persis","Aynı resmi bul","Tìm hình giống hệt","Encontre a imagem igual"]},{"path":"games/matching-pairs/index.html","title":"Čo patrí k sebe?","names":["What goes together?","Co patří k sobě?","Was gehört zusammen?","Co do siebie pasuje?","Mi tartozik össze?","Qu’est-ce qui va ensemble ?","¿Qué va con qué?","Cosa va insieme?","O que combina?","Wat hoort bij elkaar?","Ce se potrivește?","Що до чого підходить?","Τι ταιριάζει μαζί;","Vad hör ihop?","哪两个是一对？","哪兩個是一對？","何と何がセットかな？","무엇끼리 어울릴까요?","Apa pasangannya?","Hangileri birbirine uyar?","Những gì đi cùng nhau?","O que combina?"]},{"path":"games/picture-sequence/index.html","title":"Čo bolo najprv?","names":["What happened first?","Co bylo nejdřív?","Was kam zuerst?","Co było najpierw?","Mi történt először?","Qu’est-il arrivé en premier ?","¿Qué pasó primero?","Cosa è successo per primo?","O que aconteceu primeiro?","Wat gebeurde eerst?","Ce s-a întâmplat mai întâi?","Що було спочатку?","Τι έγινε πρώτα;","Vad hände först?","什么先发生？","什麼先發生？","はじめに何が起きた？","무엇이 먼저였을까요?","Apa yang terjadi dulu?","Önce ne oldu?","Chuyện gì xảy ra trước?","O que aconteceu primeiro?"]},{"path":"games/picture-domino/index.html","title":"Obrázkové domino","names":["Picture dominoes","Obrázkové domino","Bilderdomino","Domino obrazkowe","Képes dominó","Dominos en images","Dominó de imágenes","Domino delle immagini","Dominó de imagens","Plaatjesdomino","Domino cu imagini","Доміно з малюнками","Ντόμινο με εικόνες","Bilddomino","图案多米诺","圖案骨牌","絵合わせドミノ","그림 도미노","Domino gambar","Resimli domino","Đô-mi-nô hình ảnh","Dominó de figuras"]},{"path":"games/picture-sudoku/index.html","title":"Mini sudoku s obrázkami","names":["Picture sudoku","Obrázkové sudoku","Bildersudoku","Sudoku obrazkowe","Képes sudoku","Sudoku en images","Sudoku de imágenes","Sudoku delle forme","Sudoku de imagens","Plaatjessudoku","Sudoku cu imagini","Судоку з малюнками","Σουντόκου με εικόνες","Bildsudoku","图形数独","圖形數獨","形のすうどく","모양 스도쿠","Sudoku gambar","Resimli sudoku","Sudoku hình ảnh","Sudoku de figuras"]},{"path":"games/find-teddy/index.html","title":"Kde je medvedík?","names":["Find the teddy","Najdi medvídka","Finde den Teddy","Znajdź misia","Találd meg a macit","Trouve le nounours","Encuentra al osito","Trova l’orsetto","Encontra o ursinho","Vind de teddybeer","Găsește ursulețul","Знайди ведмедика","Βρες το αρκουδάκι","Hitta nallen","找到小熊","找到小熊","くまのぬいぐるみをさがそう","곰 인형을 찾아요","Cari boneka beruang","Oyuncak ayıyı bul","Tìm gấu bông","Encontre o ursinho"]},{"path":"games/picture-bingo/index.html","title":"Obrázkové bingo","names":["Picture bingo","Obrázkové bingo","Bilderbingo","Bingo obrazkowe","Képes bingó","Bingo des images","Bingo de imágenes","Bingo delle immagini","Bingo de imagens","Plaatjesbingo","Bingo cu imagini","Бінго з малюнками","Μπίνγκο με εικόνες","Bildbingo","图案宾果","圖案賓果","絵のビンゴ","그림 빙고","Bingo gambar","Resimli bingo","Bingo hình ảnh","Bingo de figuras"]},{"path":"games/feelings/index.html","title":"Ako sa cíti?","names":["How do you feel?","Jak se cítíš?","Wie fühlst du dich?","Jak się czujesz?","Hogy érzed magad?","Comment te sens-tu ?","¿Cómo te sientes?","Come ti senti?","Como te sentes?","Hoe voel jij je?","Cum te simți?","Що ти відчуваєш?","Πώς νιώθεις;","Hur känner du dig?","你会有什么感受？","你會有什麼感受？","どんな気もちかな？","어떤 기분이 들까요?","Bagaimana perasaanmu?","Nasıl hissedersin?","Em cảm thấy thế nào?","Como você se sente?"]},{"path":"games/grid-memory/index.html","title":"Zapamätaj si mriežku","names":["Remember the Grid","Zapamatuj si mřížku","Merk dir das Gitter","Zapamiętaj siatkę","Jegyezd meg a rácsot","Mémorise la grille","Recuerda la cuadrícula","Ricorda la griglia","Memoriza a grelha","Onthoud het rooster","Memorează grila","Запам’ятай сітку","Θυμήσου το πλέγμα","Kom ihåg rutnätet","记住格子","記住格子","マスをおぼえよう","칸의 위치를 기억해요","Ingat Kotaknya","Kareleri Hatırla","Nhớ vị trí trong ô","Memorize a grade"]},{"path":"games/two-rules/index.html","title":"Dve pravidlá naraz","names":["Two Rules at Once","Dvě pravidla najednou","Zwei Regeln auf einmal","Dwie zasady naraz","Két szabály egyszerre","Deux règles à la fois","Dos reglas a la vez","Due regole insieme","Duas regras ao mesmo tempo","Twee regels tegelijk","Două reguli deodată","Два правила одночасно","Δύο κανόνες μαζί","Två regler samtidigt","同时满足两条规则","同時符合兩個規則","二つのルールをいっしょに","두 가지 규칙을 한꺼번에","Dua Aturan Sekaligus","İki Kural Birden","Hai quy tắc cùng lúc","Duas regras de uma vez"]},{"path":"games/weather-clothes/index.html","title":"Obleč sa podľa počasia","names":["Dress for the Weather","Oblékni se podle počasí","Zieh dich passend zum Wetter an","Ubierz się odpowiednio do pogody","Öltözz az időjáráshoz","Habille-toi selon la météo","Vístete según el tiempo","Vestiti secondo il tempo","Veste-te conforme o tempo","Kleed je naar het weer","Îmbracă-te potrivit vremii","Одягнися за погодою","Ντύσου ανάλογα με τον καιρό","Klä dig efter vädret","看天气选衣服","看天氣選衣服","お天気に合う服をえらぼう","날씨에 맞게 입어요","Berpakaian Sesuai Cuaca","Havaya Göre Giyin","Mặc đồ theo thời tiết","Vista-se de acordo com o tempo"]},{"path":"games/picture-code/index.html","title":"Obrázková šifra","names":["Picture code","Obrázková šifra","Bildercode","Szyfr obrazkowy","Képes titkosírás","Code en images","Código de dibujos","Codice delle immagini","Código de imagens","Plaatjescode","Codul imaginilor","Шифр у малюнках","Κώδικας με εικόνες","Bildkod","图画密码","圖畫密碼","絵のあんごう","그림 암호","Kode gambar","Resimli şifre","Mật mã hình ảnh","Código de figuras"]},{"path":"games/float-or-sink/index.html","title":"Pláva alebo klesne?","names":["Float or sink?","Plave, nebo klesne?","Schwimmt es oder sinkt es?","Pływa czy tonie?","Úszik vagy elsüllyed?","Ça flotte ou ça coule ?","¿Flota o se hunde?","Galleggia o affonda?","Flutua ou afunda?","Drijft het of zinkt het?","Plutește sau se scufundă?","Плаває чи тоне?","Επιπλέει ή βυθίζεται;","Flyter eller sjunker?","会浮还是会沉？","會浮還是會沉？","うくかな、しずむかな？","뜰까요, 가라앉을까요?","Mengapung atau tenggelam?","Yüzer mi, batar mı?","Nổi hay chìm?","Flutua ou afunda?"]},{"path":"games/top-view/index.html","title":"Pohľad zhora","names":["View from Above","Pohled shora","Blick von oben","Widok z góry","Nézet felülről","Vue de dessus","Vista desde arriba","Vista dall’alto","Vista de cima","Van boven gezien","Vedere de sus","Вигляд згори","Όψη από πάνω","Ovanifrån","从上面看","從上面看","上から見てみよう","위에서 바라봐요","Tampak dari Atas","Üstten Görünüm","Nhìn từ trên xuống","Vista de cima"]},{"path":"games/touch-hunt/index.html","title":"Hmatové pátranie","names":["Touch hunt","Hmatové pátrání","Fühl-Suche","Poszukiwanie dotykiem","Tapintós kereső","Le sac à deviner","Búsqueda con el tacto","Cerca con il tatto","Descobre pelo tato","Voel en zoek","Caută prin pipăit","Пошук на дотик","Ψάξε με την αφή","Känn och hitta","摸一摸，找一找","摸一摸，找一找","さわってさがそう","만져 보고 찾아요","Raba dan temukan","Dokun ve bul","Sờ và tìm","Descubra pelo tato"]},{"path":"games/first-letter/index.html","title":"Prvé písmenká","names":["First letters","První písmenka","Erste Buchstaben","Pierwsze litery","Első betűk","Premières lettres","Primeras letras","Prime lettere","Primeiras letras","Eerste letters","Primele litere","Перші літери","Πρώτα γράμματα","Första bokstaven","找开头的汉字","找開頭的漢字","はじめの文字","첫 글자","Huruf awal","İlk harfler","Chữ cái đầu","Primeiras letras"]},{"path":"games/rhymes/index.html","title":"Rýmovačky","names":["Rhymes","Rýmovačky","Reime","Rymowanki","Rímek","Rimes","Rimas","Rime","Rimas","Rijmen","Rime","Рими","Ομοιοκαταληξίες","Rim","词语押韵","詞語押韻","同じ音で終わる言葉","끝소리가 같은 낱말","Sajak","Kafiyeli sözcükler","Từ cùng vần","Rimas"]},{"path":"games/clap-syllables/index.html","title":"Vytlieskaj slabiky","names":["Clap the syllables","Vytleskej slabiky","Klatsche die Silben","Wyklaszcz sylaby","Tapsold el a szótagokat","Tape les syllabes","Da palmas por cada sílaba","Batti le mani per ogni sillaba","Bate palmas para cada sílaba","Klap de lettergrepen","Bate din palme pentru fiecare silabă","Проплескай склади","Χτύπα παλαμάκια για τις συλλαβές","Klappa stavelserna","拍手数音节","拍手數音節","ことばにあわせて手をたたこう","음절을 세어 봐요","Tepuk suku kata","Hecele ve alkışla","Vỗ tay đếm tiếng","Bata palmas e conte as sílabas"]},{"path":"games/story-maker/index.html","title":"Vymysli príbeh","names":["Make up a story","Vymysli příběh","Erfinde eine Geschichte","Wymyśl opowieść","Találj ki egy mesét","Invente une histoire","Inventa una historia","Inventa una storia","Inventa uma história","Verzin een verhaal","Inventează o poveste","Вигадай історію","Φτιάξε μια ιστορία","Hitta på en berättelse","编一个故事","編一個故事","お話をつくろう","이야기를 지어요","Buat cerita sendiri","Bir hikâye oluştur","Nghĩ ra một câu chuyện","Invente uma história"]},{"path":"games/listen-and-draw/index.html","title":"Počúvaj a kresli","names":["Listen and draw","Poslouchej a kresli","Hör zu und zeichne","Posłuchaj i narysuj","Figyelj és rajzolj","Écoute et dessine","Escucha y dibuja","Ascolta e disegna","Ouve e desenha","Luister en teken","Ascultă și desenează","Слухай і малюй","Άκου και ζωγράφισε","Lyssna och rita","听一听，画一画","聽一聽，畫一畫","聞いてかこう","듣고 그려요","Dengarkan dan gambar","Dinle ve çiz","Nghe và vẽ","Escute e desenhe"]},{"path":"games/play-the-rhythm/index.html","title":"Zahraj rytmus","names":["Play the rhythm","Zahraj rytmus","Spiel den Rhythmus","Zagraj rytm","Játszd el a ritmust","Joue le rythme","Sigue el ritmo","Suona il ritmo","Toca o ritmo","Speel het ritme","Cântă ritmul","Зіграй ритм","Παίξε τον ρυθμό","Spela rytmen","跟着图画打节拍","跟著圖畫打節拍","リズムであそぼう","리듬을 따라 해요","Mainkan iramanya","Ritmi çal","Chơi theo nhịp","Toque o ritmo"]},{"path":"games/hear-the-difference/index.html","title":"Počuj rozdiel","names":["Hear the difference","Slyš rozdíl","Hör den Unterschied","Usłysz różnicę","Halld meg a különbséget","Écoute la différence","Oye la diferencia","Senti la differenza","Ouve a diferença","Hoor het verschil","Auzi diferența","Почуй різницю","Άκου τη διαφορά","Hör skillnaden","听出不同","聽出不同","にた音を聞き分けよう","다른 소리를 들어요","Dengar perbedaannya","Farkı duy","Nghe và phân biệt","Escute a diferença"]},{"path":"games/build-a-word/index.html","title":"Zlož slovo z častí","names":["Build a word","Slož slovo z částí","Setz das Wort zusammen","Złóż słowo z części","Rakd össze a szót","Assemble le mot","Une las partes de la palabra","Componi la parola","Junta as partes da palavra","Maak het woord","Alcătuiește cuvântul","Склади слово з частин","Φτιάξε τη λέξη","Sätt ihop ordet","拼出一个词","拼出一個詞","音をつないでことばにしよう","소리를 모아 낱말을 만들어요","Rangkai kata","Sözcüğü oluştur","Ghép các tiếng thành từ","Monte a palavra"]},{"path":"games/finish-the-sentence/index.html","title":"Dokonči vetu","names":["Finish the sentence","Dokonči větu","Vervollständige den Satz","Dokończ zdanie","Fejezd be a mondatot","Complète la phrase","Completa la frase","Completa la frase","Completa a frase","Maak de zin af","Completează propoziția","Закінчи речення","Συμπλήρωσε την πρόταση","Avsluta meningen","把句子补完整","把句子補完整","文のつづきをえらぼう","문장 완성하기","Lengkapi kalimat","Cümleyi tamamla","Hoàn thành câu","Complete a frase"]},{"path":"games/say-the-opposite/index.html","title":"Povedz opak","names":["Say the opposite","Řekni opak","Sag das Gegenteil","Powiedz, co jest odwrotnością","Mondd az ellenkezőjét","Dis le contraire","Di lo contrario","Di’ il contrario","Diz o contrário","Zeg het tegenovergestelde","Spune opusul","Скажи протилежне","Πες το αντίθετο","Säg motsatsen","说出反义词","說出反義詞","はんたいをいおう","반대말을 말해요","Sebutkan lawannya","Zıddını söyle","Nói điều ngược lại","Diga o contrário"]},{"path":"games/word-under-magnifier/index.html","title":"Slovo pod lupou","names":["Word Under the Magnifier","Slovo pod lupou","Wörter unter der Lupe","Słowo pod lupą","Szó a nagyító alatt","Un mot à la loupe","Una palabra bajo la lupa","Parole sotto la lente","Palavras à lupa","Woorden onder de loep","Cuvântul sub lupă","Слово під лупою","Λέξεις στον μεγεθυντικό φακό","Ord under lupp","放大镜找汉字","放大鏡找漢字","ことばを よく見よう","낱말 돋보기","Kata dalam Kaca Pembesar","Büyüteç Altındaki Sözcük","Soi từ bằng kính lúp","Palavras na lupa"]}]) {
+              const item = document.createElement("li");
+              const link = document.createElement("a");
+              const url = localizedUrl(new URL(game.path, catalog), language);
+              link.href = url.href;
+              link.textContent = language === "sk" ? game.title : game.names[column];
+              link.setAttribute("data-no-l10n", "");
+              if (url.pathname === currentPage) link.setAttribute("aria-current", "page");
+              item.appendChild(link);
+              menu.appendChild(item);
+            }
+            menu.closest("details").hidden = false;
+          }
+          picker.closest(".language-bar").hidden = false;
+          picker.addEventListener("change", () => {
+            const chosen = picker.value;
+            if (Object.hasOwn(languages, chosen) && chosen !== language) {
+              remember(chosen);
+              location.replace(localizedUrl(location.href, chosen).href);
+            }
+          });
+          document.querySelectorAll("a.game[href], a.catalog-link[href], a.site-brand[href]").forEach(link => {
+            link.href = localizedUrl(link.href, language).href;
+          });
+          if (language === "sk") return;
+          document.title = translate(document.title);
+          const meta = document.querySelector('meta[name="description"]');
+          if (meta) meta.content = translate(meta.content);
+          translateTree(document.body);
+          const observer = new MutationObserver(records => {
+            for (const record of records) record.addedNodes.forEach(translateTree);
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+          window.addEventListener("beforeprint", () => translateTree(document.body));
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="game-topbar">
+      <div class="game-brand-row">
+        <a class="site-brand" href="../../index.html" data-no-l10n>
+          <span class="game-brand-icon" aria-hidden="true">✿</span>
+          <span>Little Explorers</span>
+        </a>
+        <div class="language-bar" hidden>
+          <label class="language-control" for="worksheet-language">
+            <span>Jazyk</span>
+            <select id="worksheet-language"></select>
+          </label>
+        </div>
+      </div>
+      <nav class="game-links" aria-label="Všetky hry">
+        <a class="catalog-link" href="../../index.html">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 12H4m6-6-6 6 6 6"/>
+          </svg>
+          <span>Späť na hry</span>
+        </a>
+        <details class="games-menu" hidden>
+          <summary>Všetky hry</summary>
+          <div class="games-menu-panel">
+            <ul id="related-games"></ul>
+          </div>
+        </details>
+      </nav>
+    </header>
+
+    <header class="toolbar">
+      <div>
+        <h1>Čo chýba na obrázku?</h1>
+        <p>Obrázkové úlohy na pozornosť a postreh pre deti 3–5 rokov.</p>
+      </div>
+      <div class="actions">
+        <button class="secondary" type="button" onclick="generateWorksheet()">Nové úlohy</button>
+        <button type="button" onclick="window.print()">Vytlačiť list</button>
+      </div>
+    </header>
+
+    <main id="app">
+      <section class="worksheet">
+        <div class="page-header">
+          <div>
+            <h1>Pozri sa pozorne: Čo tu chýba?</h1>
+            <p>Zakrúžkuj chýbajúcu vec z možností dole a dokresli ju ceruzkou na obrázok.</p>
+          </div>
+        </div>
+
+        <div class="cards-grid" id="grid"></div>
+      </section>
+    </main>
+    <footer class="game-footer">
+      <span>© 2026 Milan Jankovec</span>
+      <a href="https://github.com/milanjankovec/little-explorers">GitHub</a>
+      <a href="../../LICENSE">EUPL-1.2</a>
+    </footer>
+
+    <script>
+      const scenes = [
+        {
+          id: "rabbit",
+          title: "Zajačik",
+          answer: "Uško",
+          distractors: ["Chvostík", "Labka"],
+          svg: `
+            <!-- Left ear exists -->
+            <path d="M 95 90 C 80 50 75 15 90 12 C 105 10 115 50 115 90" fill="#f3c7b9" stroke="#604b45" stroke-width="3" stroke-linecap="round"/>
+            <!-- Missing right ear dashed cue -->
+            <path d="M 125 90 C 135 50 145 15 155 18 C 165 22 155 55 145 90" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="150" y="55" font-size="18" font-weight="900" fill="#ef4444">?</text>
+            <!-- Head & face -->
+            <circle cx="120" cy="115" r="35" fill="#fffaf4" stroke="#604b45" stroke-width="3"/>
+            <circle cx="108" cy="112" r="3" fill="#302b2a"/><circle cx="132" cy="112" r="3" fill="#302b2a"/>
+            <ellipse cx="120" cy="120" rx="4" ry="3" fill="#ec8e91"/>
+            <path d="M 115 125 Q 120 130 125 125" fill="none" stroke="#604b45" stroke-width="2"/>
+          `
+        },
+        {
+          id: "car",
+          title: "Autíčko",
+          answer: "Koleso",
+          distractors: ["Volant", "Svetlo"],
+          svg: `
+            <!-- Car body -->
+            <rect x="35" y="70" width="170" height="50" rx="10" fill="#60a5fa" stroke="#1d4ed8" stroke-width="3"/>
+            <path d="M 65 70 L 85 35 H 145 L 175 70 Z" fill="#dbeafe" stroke="#1d4ed8" stroke-width="3"/>
+            <!-- Front wheel present -->
+            <circle cx="75" cy="120" r="22" fill="#334155"/>
+            <circle cx="75" cy="120" r="9" fill="white"/>
+            <!-- Back wheel missing dashed cue -->
+            <circle cx="165" cy="120" r="22" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="165" y="127" font-size="20" font-weight="900" fill="#ef4444" text-anchor="middle">?</text>
+          `
+        },
+        {
+          id: "house",
+          title: "Domček",
+          answer: "Dvere",
+          distractors: ["Strecha", "Komín"],
+          svg: `
+            <!-- Roof & Chimney -->
+            <path d="M 120 30 L 40 85 H 200 Z" fill="#f87171" stroke="#b91c1c" stroke-width="3"/>
+            <rect x="155" y="40" width="16" height="25" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>
+            <!-- Walls -->
+            <rect x="55" y="85" width="130" height="75" fill="#fef08a" stroke="#ca8a04" stroke-width="3"/>
+            <!-- Window present -->
+            <rect x="70" y="100" width="28" height="28" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+            <!-- Missing door dashed cue -->
+            <rect x="120" y="105" width="34" height="55" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="137" y="137" font-size="20" font-weight="900" fill="#ef4444" text-anchor="middle">?</text>
+          `
+        },
+        {
+          id: "flower",
+          title: "Kvietok",
+          answer: "Lístok",
+          distractors: ["Kvetináč", "Stonka"],
+          svg: `
+            <!-- Blossom -->
+            <circle cx="120" cy="55" r="16" fill="#fde047" stroke="#ca8a04" stroke-width="2.5"/>
+            <circle cx="120" cy="30" r="10" fill="#f472b6"/><circle cx="145" cy="45" r="10" fill="#f472b6"/>
+            <circle cx="138" cy="72" r="10" fill="#f472b6"/><circle cx="102" cy="72" r="10" fill="#f472b6"/><circle cx="95" cy="45" r="10" fill="#f472b6"/>
+            <!-- Stem -->
+            <path d="M 120 75 V 155" stroke="#16a34a" stroke-width="4" stroke-linecap="round"/>
+            <!-- Left leaf present -->
+            <path d="M 120 115 Q 90 100 85 125 Q 110 130 120 122" fill="#86efac" stroke="#16a34a" stroke-width="2"/>
+            <!-- Right leaf missing dashed cue -->
+            <path d="M 120 125 Q 150 110 155 135 Q 130 140 120 132" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="150" y="125" font-size="18" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "fish",
+          title: "Rybka",
+          answer: "Chvostík",
+          distractors: ["Očko", "Plutvička"],
+          svg: `
+            <!-- Body -->
+            <ellipse cx="105" cy="95" rx="50" ry="32" fill="#8fd0dc" stroke="#4d737a" stroke-width="3"/>
+            <circle cx="75" cy="88" r="4" fill="#1e293b"/>
+            <path d="M 68 100 Q 75 106 82 100" fill="none" stroke="#4d737a" stroke-width="2"/>
+            <!-- Missing tail fin cue -->
+            <path d="M 155 95 L 195 65 V 125 Z" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="175" y="102" font-size="20" font-weight="900" fill="#ef4444" text-anchor="middle">?</text>
+          `
+        },
+        {
+          id: "cat",
+          title: "Mačička",
+          answer: "Fúziky",
+          distractors: ["Ušká", "Chvostík"],
+          svg: `
+            <!-- Head & ears -->
+            <path d="M 85 60 L 95 30 L 115 50 M 155 60 L 145 30 L 125 50" fill="#f4c27a" stroke="#66513d" stroke-width="3"/>
+            <circle cx="120" cy="85" r="35" fill="#f4c27a" stroke="#66513d" stroke-width="3"/>
+            <circle cx="108" cy="80" r="3" fill="#1e293b"/><circle cx="132" cy="80" r="3" fill="#1e293b"/>
+            <polygon points="120,90 115,85 125,85" fill="#e98f91"/>
+            <!-- Missing whiskers dashed cue -->
+            <line x1="75" y1="88" x2="105" y2="88" stroke="#ef4444" stroke-width="2" stroke-dasharray="3 3"/>
+            <line x1="75" y1="95" x2="105" y2="92" stroke="#ef4444" stroke-width="2" stroke-dasharray="3 3"/>
+            <text x="65" y="94" font-size="16" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "sun",
+          title: "Slniečko",
+          answer: "Lúče",
+          distractors: ["Oblak", "Oči"],
+          svg: `
+            <!-- Sun circle & face -->
+            <circle cx="105" cy="85" r="38" fill="#fef08a" stroke="#ca8a04" stroke-width="3"/>
+            <circle cx="95" cy="80" r="3.5" fill="#1e293b"/><circle cx="115" cy="80" r="3.5" fill="#1e293b"/>
+            <path d="M 98 94 Q 105 102 112 94" fill="none" stroke="#ca8a04" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="88" cy="88" r="3.5" fill="#fbcfe8"/><circle cx="122" cy="88" r="3.5" fill="#fbcfe8"/>
+            <!-- Left rays present -->
+            <line x1="67" y1="85" x2="42" y2="85" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+            <line x1="78" y1="58" x2="60" y2="40" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+            <line x1="105" y1="47" x2="105" y2="22" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+            <line x1="78" y1="112" x2="60" y2="130" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+            <line x1="105" y1="123" x2="105" y2="148" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+            <!-- Right rays missing dashed cue -->
+            <line x1="143" y1="85" x2="175" y2="85" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3" stroke-linecap="round"/>
+            <line x1="132" y1="58" x2="155" y2="40" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3" stroke-linecap="round"/>
+            <line x1="132" y1="112" x2="155" y2="130" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3" stroke-linecap="round"/>
+            <text x="175" y="65" font-size="20" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "clock",
+          title: "Budík",
+          answer: "Ručičky",
+          distractors: ["Zvončeky", "Nožičky"],
+          svg: `
+            <!-- Bells & legs -->
+            <circle cx="85" cy="42" r="14" fill="#cbd5e1" stroke="#475569" stroke-width="2.5"/>
+            <circle cx="155" cy="42" r="14" fill="#cbd5e1" stroke="#475569" stroke-width="2.5"/>
+            <line x1="85" y1="135" x2="72" y2="150" stroke="#475569" stroke-width="4" stroke-linecap="round"/>
+            <line x1="155" y1="135" x2="168" y2="150" stroke="#475569" stroke-width="4" stroke-linecap="round"/>
+            <!-- Main body & dial -->
+            <circle cx="120" cy="90" r="48" fill="#ef4444" stroke="#b91c1c" stroke-width="3"/>
+            <circle cx="120" cy="90" r="38" fill="white" stroke="#b91c1c" stroke-width="1.5"/>
+            <!-- Clock hour marks -->
+            <circle cx="120" cy="58" r="2.5" fill="#1e293b"/>
+            <circle cx="152" cy="90" r="2.5" fill="#1e293b"/>
+            <circle cx="120" cy="122" r="2.5" fill="#1e293b"/>
+            <circle cx="88" cy="90" r="2.5" fill="#1e293b"/>
+            <!-- Missing hands dashed cue -->
+            <circle cx="120" cy="90" r="4" fill="#ef4444"/>
+            <line x1="120" y1="90" x2="120" y2="66" stroke="#ef4444" stroke-width="3" stroke-dasharray="4 3" stroke-linecap="round"/>
+            <line x1="120" y1="90" x2="142" y2="90" stroke="#ef4444" stroke-width="3" stroke-dasharray="4 3" stroke-linecap="round"/>
+            <text x="135" y="78" font-size="18" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "snowman",
+          title: "Snehuliak",
+          answer: "Nos z mrkvy",
+          distractors: ["Klobúk", "Gombíky"],
+          svg: `
+            <!-- Head and body -->
+            <circle cx="120" cy="140" r="35" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+            <circle cx="120" cy="78" r="26" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+            <!-- Hat -->
+            <rect x="100" y="28" width="40" height="26" fill="#334155" stroke="#1e293b" stroke-width="2"/>
+            <line x1="90" y1="54" x2="150" y2="54" stroke="#1e293b" stroke-width="3.5" stroke-linecap="round"/>
+            <!-- Eyes & mouth dots -->
+            <circle cx="110" cy="74" r="3" fill="#1e293b"/><circle cx="130" cy="74" r="3" fill="#1e293b"/>
+            <circle cx="113" cy="92" r="1.8" fill="#1e293b"/><circle cx="120" cy="94" r="1.8" fill="#1e293b"/><circle cx="127" cy="92" r="1.8" fill="#1e293b"/>
+            <!-- Buttons -->
+            <circle cx="120" cy="125" r="3" fill="#1e293b"/><circle cx="120" cy="142" r="3" fill="#1e293b"/>
+            <!-- Missing carrot nose cue -->
+            <polygon points="120,80 155,84 120,88" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-dasharray="4 3"/>
+            <text x="160" y="88" font-size="18" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "butterfly",
+          title: "Motýlik",
+          answer: "Pravé krídlo",
+          distractors: ["Tykadlá", "Hlavička"],
+          svg: `
+            <!-- Left wings present -->
+            <path d="M 115 70 C 65 30 35 60 55 95 C 65 110 95 105 115 90 Z" fill="#fbcfe8" stroke="#db2777" stroke-width="2.5"/>
+            <path d="M 115 90 C 70 95 50 125 70 145 C 90 155 110 135 115 110 Z" fill="#fed7aa" stroke="#ea580c" stroke-width="2.5"/>
+            <!-- Body & antennae -->
+            <ellipse cx="120" cy="95" rx="6" ry="32" fill="#475569"/>
+            <circle cx="120" cy="58" r="8" fill="#475569"/>
+            <path d="M 117 52 Q 105 32 95 35" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/>
+            <path d="M 123 52 Q 135 32 145 35" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/>
+            <!-- Missing right wings dashed cue -->
+            <path d="M 125 70 C 175 30 205 60 185 95 C 175 110 145 105 125 90 Z" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <path d="M 125 90 C 170 95 190 125 170 145 C 150 155 130 135 125 110 Z" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="165" y="98" font-size="20" font-weight="900" fill="#ef4444" text-anchor="middle">?</text>
+          `
+        },
+        {
+          id: "chair",
+          title: "Stolička",
+          answer: "Noha stoličky",
+          distractors: ["Operadlo", "Vankúš"],
+          svg: `
+            <!-- Backrest -->
+            <rect x="75" y="30" width="12" height="75" rx="3" fill="#f59e0b" stroke="#b45309" stroke-width="2.5"/>
+            <rect x="75" y="35" width="45" height="10" rx="2" fill="#fde68a" stroke="#b45309" stroke-width="2"/>
+            <rect x="75" y="55" width="45" height="8" rx="2" fill="#fde68a" stroke="#b45309" stroke-width="2"/>
+            <!-- Seat -->
+            <polygon points="65,95 165,95 150,110 60,110" fill="#f59e0b" stroke="#b45309" stroke-width="2.5"/>
+            <!-- Back leg & front left leg present -->
+            <line x1="78" y1="105" x2="72" y2="152" stroke="#b45309" stroke-width="4.5" stroke-linecap="round"/>
+            <line x1="145" y1="105" x2="140" y2="148" stroke="#b45309" stroke-width="4" stroke-linecap="round"/>
+            <line x1="68" y1="110" x2="62" y2="155" stroke="#b45309" stroke-width="5" stroke-linecap="round"/>
+            <!-- Missing front right leg cue -->
+            <line x1="148" y1="110" x2="142" y2="155" stroke="#ef4444" stroke-width="3" stroke-dasharray="4 3" stroke-linecap="round"/>
+            <text x="160" y="140" font-size="18" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "glasses",
+          title: "Okuliare",
+          answer: "Sklíčko",
+          distractors: ["Rámik", "Šnúrka"],
+          svg: `
+            <!-- Temples -->
+            <path d="M 52 75 Q 30 70 25 55" fill="none" stroke="#2563eb" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M 188 75 Q 210 70 215 55" fill="none" stroke="#2563eb" stroke-width="3.5" stroke-linecap="round"/>
+            <!-- Bridge -->
+            <path d="M 108 75 Q 120 68 132 75" fill="none" stroke="#2563eb" stroke-width="3.5" stroke-linecap="round"/>
+            <!-- Left frame & glass present -->
+            <circle cx="80" cy="78" r="28" fill="#dbeafe" stroke="#2563eb" stroke-width="4"/>
+            <path d="M 70 65 Q 85 62 90 70" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Missing right glass dashed cue -->
+            <circle cx="160" cy="78" r="28" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="5 3"/>
+            <text x="160" y="85" font-size="22" font-weight="900" fill="#ef4444" text-anchor="middle">?</text>
+          `
+        },
+        {
+          id: "cup",
+          title: "Hrnček",
+          answer: "Uško hrnčeka",
+          distractors: ["Tanierik", "Lyžička"],
+          svg: `
+            <!-- Steam -->
+            <path d="M 95 38 Q 90 25 98 18" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
+            <path d="M 120 38 Q 115 22 125 15" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
+            <!-- Mug body -->
+            <rect x="75" y="45" width="75" height="75" rx="8" fill="#38bdf8" stroke="#0284c7" stroke-width="3"/>
+            <!-- Polka dots -->
+            <circle cx="95" cy="70" r="5" fill="white"/><circle cx="125" cy="70" r="5" fill="white"/>
+            <circle cx="110" cy="95" r="5" fill="white"/>
+            <!-- Saucer -->
+            <ellipse cx="112" cy="125" rx="55" ry="8" fill="#e0f2fe" stroke="#0284c7" stroke-width="2.5"/>
+            <!-- Missing handle dashed cue -->
+            <path d="M 150 58 C 185 58 185 105 150 105" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="4 3"/>
+            <text x="175" y="88" font-size="20" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "train",
+          title: "Vláčik",
+          answer: "Komín",
+          distractors: ["Kolesá", "Okno"],
+          svg: `
+            <!-- Cabin & boiler -->
+            <rect x="135" y="45" width="55" height="70" rx="4" fill="#ef4444" stroke="#991b1b" stroke-width="3"/>
+            <rect x="150" y="55" width="28" height="25" rx="3" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/>
+            <rect x="55" y="65" width="80" height="50" rx="4" fill="#3b82f6" stroke="#1d4ed8" stroke-width="3"/>
+            <!-- Wheels -->
+            <circle cx="80" cy="122" r="16" fill="#334155"/><circle cx="80" cy="122" r="7" fill="white"/>
+            <circle cx="120" cy="122" r="16" fill="#334155"/><circle cx="120" cy="122" r="7" fill="white"/>
+            <circle cx="165" cy="122" r="18" fill="#334155"/><circle cx="165" cy="122" r="8" fill="white"/>
+            <!-- Missing chimney cue -->
+            <path d="M 80 65 V 35 H 105 V 65 Z" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="92" y="53" font-size="18" font-weight="900" fill="#ef4444" text-anchor="middle">?</text>
+          `
+        },
+        {
+          id: "scissors",
+          title: "Nožnice",
+          answer: "Čepeľ",
+          distractors: ["Rukoväť", "Skrutka"],
+          svg: `
+            <!-- Handles -->
+            <circle cx="55" cy="65" r="18" fill="#fee2e2" stroke="#ef4444" stroke-width="3.5"/>
+            <circle cx="55" cy="115" r="18" fill="#fee2e2" stroke="#ef4444" stroke-width="3.5"/>
+            <!-- Pivot screw -->
+            <circle cx="105" cy="90" r="4.5" fill="#334155"/>
+            <!-- Upper blade present -->
+            <path d="M 68 75 L 105 90 L 195 55 L 105 85 Z" fill="#e2e8f0" stroke="#475569" stroke-width="2.5"/>
+            <!-- Missing lower blade dashed cue -->
+            <path d="M 68 105 L 105 90 L 195 125 L 105 95 Z" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="165" y="115" font-size="20" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "apple",
+          title: "Jabĺčko",
+          answer: "Stopka s lístkom",
+          distractors: ["Kôstka", "Šupka"],
+          svg: `
+            <!-- Apple body -->
+            <path d="M 120 55 C 155 35 185 65 180 110 C 175 145 145 155 120 152 C 95 155 65 145 60 110 C 55 65 85 35 120 55 Z" fill="#f87171" stroke="#dc2626" stroke-width="3"/>
+            <!-- Cute face -->
+            <circle cx="105" cy="100" r="3.5" fill="#1e293b"/><circle cx="135" cy="100" r="3.5" fill="#1e293b"/>
+            <path d="M 112 112 Q 120 118 128 112" fill="none" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+            <!-- Missing stem & leaf dashed cue -->
+            <path d="M 120 55 Q 125 30 135 22" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="4 3" stroke-linecap="round"/>
+            <path d="M 130 35 Q 155 25 150 45 Q 132 45 130 35 Z" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3 3"/>
+            <text x="160" y="35" font-size="18" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "elephant",
+          title: "Sloník",
+          answer: "Chobot",
+          distractors: ["Veľké ucho", "Chvostík"],
+          svg: `
+            <!-- Body & legs -->
+            <rect x="115" y="70" width="75" height="55" rx="15" fill="#cbd5e1" stroke="#475569" stroke-width="3"/>
+            <rect x="125" y="115" width="16" height="25" rx="3" fill="#cbd5e1" stroke="#475569" stroke-width="2.5"/>
+            <rect x="165" y="115" width="16" height="25" rx="3" fill="#cbd5e1" stroke="#475569" stroke-width="2.5"/>
+            <!-- Tail -->
+            <path d="M 190 85 Q 205 95 200 115" fill="none" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Head & eye -->
+            <circle cx="105" cy="75" r="28" fill="#cbd5e1" stroke="#475569" stroke-width="3"/>
+            <circle cx="95" cy="68" r="3" fill="#1e293b"/>
+            <!-- Big ear -->
+            <ellipse cx="125" cy="75" rx="15" ry="22" fill="#fbcfe8" stroke="#475569" stroke-width="2.5"/>
+            <!-- Missing trunk dashed cue -->
+            <path d="M 85 80 C 60 85 55 125 75 125 C 85 125 80 115 72 115" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="4 3" stroke-linecap="round"/>
+            <text x="50" y="105" font-size="20" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "bicycle",
+          title: "Bicykel",
+          answer: "Sedadlo",
+          distractors: ["Pedál", "Kormidlo"],
+          svg: `
+            <!-- Wheels -->
+            <circle cx="60" cy="110" r="24" fill="none" stroke="#334155" stroke-width="4"/>
+            <circle cx="60" cy="110" r="4" fill="#334155"/>
+            <circle cx="180" cy="110" r="24" fill="none" stroke="#334155" stroke-width="4"/>
+            <circle cx="180" cy="110" r="4" fill="#334155"/>
+            <!-- Frame -->
+            <line x1="60" y1="110" x2="105" y2="110" stroke="#2563eb" stroke-width="3.5"/>
+            <line x1="60" y1="110" x2="95" y2="70" stroke="#2563eb" stroke-width="3.5"/>
+            <line x1="105" y1="110" x2="95" y2="70" stroke="#2563eb" stroke-width="3.5"/>
+            <line x1="105" y1="110" x2="155" y2="70" stroke="#2563eb" stroke-width="3.5"/>
+            <line x1="95" y1="70" x2="155" y2="70" stroke="#2563eb" stroke-width="3.5"/>
+            <line x1="180" y1="110" x2="160" y2="55" stroke="#2563eb" stroke-width="3.5"/>
+            <!-- Handlebar -->
+            <path d="M 155 55 H 170" stroke="#334155" stroke-width="4" stroke-linecap="round"/>
+            <!-- Seat post -->
+            <line x1="95" y1="70" x2="92" y2="58" stroke="#334155" stroke-width="3.5"/>
+            <!-- Missing seat dashed cue -->
+            <path d="M 75 56 C 85 52 110 52 115 58 C 105 64 85 64 75 56 Z" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="3 3"/>
+            <text x="95" y="45" font-size="18" font-weight="900" fill="#ef4444" text-anchor="middle">?</text>
+          `
+        },
+        {
+          id: "bird",
+          title: "Vtáčik",
+          answer: "Zobáčik",
+          distractors: ["Pierka", "Pazúriky"],
+          svg: `
+            <!-- Perch branch -->
+            <line x1="40" y1="130" x2="200" y2="130" stroke="#854d0e" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 110 130 L 115 136 M 125 130 L 130 136" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+            <!-- Body & tail -->
+            <path d="M 155 85 L 195 105 L 155 100 Z" fill="#60a5fa" stroke="#1d4ed8" stroke-width="2.5"/>
+            <circle cx="120" cy="85" r="32" fill="#93c5fd" stroke="#1d4ed8" stroke-width="3"/>
+            <!-- Wing -->
+            <path d="M 125 80 Q 155 85 145 105 Q 125 110 120 95 Z" fill="#3b82f6" stroke="#1d4ed8" stroke-width="2"/>
+            <!-- Eye -->
+            <circle cx="102" cy="78" r="4" fill="#1e293b"/><circle cx="100.5" cy="76.5" r="1.2" fill="white"/>
+            <!-- Missing beak dashed cue -->
+            <polygon points="88,80 65,85 88,90" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="60" y="75" font-size="18" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "turtle",
+          title: "Korytnačka",
+          answer: "Pancier",
+          distractors: ["Hlavička", "Chvostík"],
+          svg: `
+            <!-- Feet & tail -->
+            <ellipse cx="85" cy="118" rx="8" ry="12" fill="#86efac" stroke="#16a34a" stroke-width="2.5"/>
+            <ellipse cx="155" cy="118" rx="8" ry="12" fill="#86efac" stroke="#16a34a" stroke-width="2.5"/>
+            <path d="M 175 105 L 195 102 L 175 110 Z" fill="#86efac" stroke="#16a34a" stroke-width="2"/>
+            <!-- Head & eye & smile -->
+            <ellipse cx="60" cy="95" rx="16" ry="12" fill="#86efac" stroke="#16a34a" stroke-width="2.5"/>
+            <circle cx="54" cy="92" r="2.5" fill="#1e293b"/>
+            <path d="M 50 98 Q 55 102 60 98" fill="none" stroke="#16a34a" stroke-width="1.8"/>
+            <!-- Body base -->
+            <rect x="70" y="100" width="105" height="15" rx="5" fill="#86efac" stroke="#16a34a" stroke-width="2.5"/>
+            <!-- Missing shell dashed cue -->
+            <path d="M 75 102 C 75 50 170 50 170 102 Z" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="122" y="82" font-size="20" font-weight="900" fill="#ef4444" text-anchor="middle">?</text>
+          `
+        },
+        {
+          id: "snail",
+          title: "Slimáčik",
+          answer: "Ulita",
+          distractors: ["Tykadlá", "Tráva"],
+          svg: `
+            <!-- Grass -->
+            <path d="M 35 135 H 205" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+            <!-- Body / foot -->
+            <path d="M 45 132 C 60 132 80 125 185 125 C 195 125 195 132 185 132 Z" fill="#fde047" stroke="#ca8a04" stroke-width="2.5"/>
+            <!-- Head & antennae -->
+            <circle cx="65" cy="112" r="14" fill="#fde047" stroke="#ca8a04" stroke-width="2.5"/>
+            <circle cx="60" cy="110" r="2" fill="#1e293b"/>
+            <path d="M 60 100 Q 52 82 48 85" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="48" cy="85" r="2.5" fill="#ca8a04"/>
+            <path d="M 68 100 Q 72 82 76 85" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="76" cy="85" r="2.5" fill="#ca8a04"/>
+            <!-- Missing shell dashed cue -->
+            <circle cx="130" cy="85" r="35" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <path d="M 130 65 A 20 20 0 0 1 145 85" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3 3"/>
+            <text x="130" y="92" font-size="20" font-weight="900" fill="#ef4444" text-anchor="middle">?</text>
+          `
+        },
+        {
+          id: "umbrella",
+          title: "Dáždnik",
+          answer: "Rúčka",
+          distractors: ["Kvapky", "Špice"],
+          svg: `
+            <!-- Raindrops -->
+            <path d="M 45 55 Q 40 70 45 75 Q 50 70 45 55 Z" fill="#93c5fd" stroke="#3b82f6" stroke-width="1.2"/>
+            <path d="M 195 55 Q 190 70 195 75 Q 200 70 195 55 Z" fill="#93c5fd" stroke="#3b82f6" stroke-width="1.2"/>
+            <!-- Canopy -->
+            <path d="M 50 90 C 50 40 190 40 190 90 Q 155 80 120 90 Q 85 80 50 90 Z" fill="#f43f5e" stroke="#be123c" stroke-width="3"/>
+            <!-- Ferrule top -->
+            <line x1="120" y1="40" x2="120" y2="28" stroke="#be123c" stroke-width="3.5" stroke-linecap="round"/>
+            <!-- Missing shaft & handle cue -->
+            <line x1="120" y1="88" x2="120" y2="135" stroke="#ef4444" stroke-width="3" stroke-dasharray="4 3" stroke-linecap="round"/>
+            <path d="M 120 135 Q 120 152 105 152 Q 92 152 92 138" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="4 3" stroke-linecap="round"/>
+            <text x="138" y="125" font-size="18" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "cake",
+          title: "Torta",
+          answer: "Sviečky",
+          distractors: ["Poleva", "Tanier"],
+          svg: `
+            <!-- Plate -->
+            <ellipse cx="120" cy="142" rx="75" ry="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2.5"/>
+            <!-- Lower tier -->
+            <rect x="65" y="95" width="110" height="42" rx="5" fill="#fbcfe8" stroke="#db2777" stroke-width="3"/>
+            <!-- Upper tier -->
+            <rect x="85" y="60" width="70" height="35" rx="4" fill="#fed7aa" stroke="#ea580c" stroke-width="2.5"/>
+            <!-- Frosting drips -->
+            <path d="M 85 72 Q 95 80 105 72 Q 115 80 125 72 Q 135 80 145 72 Q 155 80 155 72" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+            <!-- Missing candles dashed cue -->
+            <rect x="98" y="32" width="6" height="28" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3 2"/>
+            <rect x="117" y="30" width="6" height="30" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3 2"/>
+            <rect x="136" y="32" width="6" height="28" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3 2"/>
+            <text x="155" y="42" font-size="18" font-weight="900" fill="#ef4444">?</text>
+          `
+        },
+        {
+          id: "airplane",
+          title: "Lietadlo",
+          answer: "Veľké krídlo",
+          distractors: ["Vrtuľa", "Okno"],
+          svg: `
+            <!-- Fuselage -->
+            <path d="M 40 85 C 40 70 85 68 185 70 L 205 50 V 85 L 185 92 H 65 Z" fill="#e0e7ff" stroke="#4338ca" stroke-width="3"/>
+            <!-- Cockpit & windows -->
+            <path d="M 50 78 Q 65 74 72 82 Z" fill="#60a5fa"/>
+            <circle cx="95" cy="80" r="3.5" fill="#60a5fa"/><circle cx="115" cy="80" r="3.5" fill="#60a5fa"/>
+            <circle cx="135" cy="80" r="3.5" fill="#60a5fa"/><circle cx="155" cy="80" r="3.5" fill="#60a5fa"/>
+            <!-- Top wing / fin present -->
+            <path d="M 120 70 L 140 38 H 155 L 142 70 Z" fill="#a5b4fc" stroke="#4338ca" stroke-width="2.5"/>
+            <!-- Missing bottom wing dashed cue -->
+            <path d="M 115 88 L 130 135 H 148 L 142 88 Z" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="160" y="125" font-size="18" font-weight="900" fill="#ef4444">?</text>
+          `
+        }
+      ];
+
+      function shuffle(arr) {
+        const copy = arr.slice();
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      const assembledScenes = [
+        {
+          id: "robot", title: "Malý robot",
+          base: '<rect x="79" y="36" width="82" height="61" rx="12" fill="#e0f2fe" stroke="#315b7d" stroke-width="3"/><rect x="88" y="97" width="64" height="46" rx="8" fill="#c4d8ef" stroke="#315b7d" stroke-width="3"/><rect x="106" y="109" width="28" height="18" rx="3" fill="#fef3c7" stroke="#315b7d" stroke-width="2"/><path d="M 106 80 H 134" fill="none" stroke="#315b7d" stroke-width="3" stroke-linecap="round"/>',
+          parts: [
+            { answer: "Anténka", path: "M 120 36 V 23 M 120 10 a 6 6 0 1 1 0 12 a 6 6 0 1 1 0 -12 Z", fill: "#fde68a", cue: [141, 24] },
+            { answer: "Oči", path: "M 103 58 a 5 5 0 1 1 0 10 a 5 5 0 1 1 0 -10 Z M 137 58 a 5 5 0 1 1 0 10 a 5 5 0 1 1 0 -10 Z", fill: "#315b7d", cue: [120, 60] },
+            { answer: "Ruky", path: "M 87 102 H 73 V 126 H 59 V 98 Q 59 91 66 91 H 86 Z M 153 102 H 167 V 126 H 181 V 98 Q 181 91 174 91 H 154 Z", fill: "#aac4dd", cue: [194, 116] }
+          ]
+        },
+        {
+          id: "sailboat", title: "Na vode",
+          base: '<path d="M 34 108 H 207 L 178 136 H 58Z" fill="#e4996f" stroke="#914e32" stroke-width="3" stroke-linejoin="round"/><path d="M 26 146 Q 38 139 50 146 T 74 146 T 98 146 T 122 146 T 146 146 T 170 146 T 194 146 T 218 146" fill="none" stroke="#5ca6d0" stroke-width="3"/>',
+          parts: [
+            { answer: "Plachta", path: "M 113 22 L 61 102 H 113 Z M 126 40 L 171 102 H 126 Z", fill: "#bae6fd", cue: [87, 69] },
+            { answer: "Stožiar", path: "M 119 25 V 108", cue: [132, 29] },
+            { answer: "Okienko", path: "M 120 115 a 7 7 0 1 1 0 14 a 7 7 0 1 1 0 -14 Z", fill: "#fef3c7", cue: [137, 128] }
+          ]
+        },
+        {
+          id: "penguin", title: "Tučniak",
+          base: '<path d="M 120 24 C 83 24 76 65 82 112 C 86 132 98 141 120 141 C 142 141 154 132 158 112 C 164 65 157 24 120 24 Z" fill="#475569" stroke="#263248" stroke-width="3"/><path d="M 120 56 C 98 38 85 72 91 107 C 94 126 104 135 120 135 C 136 135 146 126 149 107 C 155 72 142 38 120 56 Z" fill="#fffdfa"/><circle cx="107" cy="68" r="3.5" fill="#263248"/><circle cx="133" cy="68" r="3.5" fill="#263248"/>',
+          parts: [
+            { answer: "Zobáčik", path: "M 112 78 H 128 L 120 87 Z", fill: "#fbbc63", cue: [120, 103] },
+            { answer: "Krídla", path: "M 82 73 Q 63 80 59 110 Q 71 110 82 100 Z M 158 73 Q 177 80 181 110 Q 169 110 158 100 Z", fill: "#62758a", cue: [193, 103] },
+            { answer: "Nôžky", path: "M 104 141 C 94 136 83 142 84 149 H 115 L 116 141 Z M 136 141 C 146 136 157 142 156 149 H 125 L 124 141 Z", fill: "#fbbc63", cue: [168, 149] }
+          ]
+        },
+        {
+          id: "pig", title: "Prasiatko",
+          base: '<ellipse cx="119" cy="93" rx="57" ry="38" fill="#f4b9c6" stroke="#8a5365" stroke-width="3"/><circle cx="155" cy="79" r="28" fill="#f4b9c6" stroke="#8a5365" stroke-width="3"/><circle cx="149" cy="74" r="3.5" fill="#344155"/><circle cx="166" cy="74" r="3.5" fill="#344155"/><path d="M 62 91 Q 47 93 49 83 Q 54 73 59 83" fill="none" stroke="#8a5365" stroke-width="3"/>',
+          parts: [
+            { answer: "Ušká", path: "M 129 67 L 122 42 Q 143 43 144 56 Z M 164 55 Q 172 42 185 45 L 177 66 Z", fill: "#e58ba4", cue: [151, 41] },
+            { answer: "Rypáčik", path: "M 144 94 C 144 81 173 81 173 94 C 173 106 144 106 144 94 Z M 153 90 V 97 M 164 90 V 97", fill: "#f29db2", cue: [190, 96] },
+            { answer: "Nôžky", path: "M 84 123 V 146 H 99 V 128 M 124 130 V 146 H 139 V 126", fill: "#f4b9c6", cue: [112, 149] }
+          ]
+        },
+        {
+          id: "teapot", title: "Čajník",
+          base: '<path d="M 76 71 H 160 Q 176 112 149 135 H 88 Q 63 113 76 71 Z" fill="#c5dce8" stroke="#516780" stroke-width="3"/><path d="M 83 116 H 153" fill="none" stroke="#83acc9" stroke-width="4" stroke-linecap="round"/>',
+          parts: [
+            { answer: "Pokrievka", path: "M 80 70 Q 90 53 110 54 V 44 Q 118 36 126 44 V 54 Q 146 53 156 70 Z", fill: "#aed6ed", cue: [153, 49] },
+            { answer: "Rúčka", path: "M 163 77 Q 196 65 203 86 Q 210 112 171 123 L 171 112 Q 197 102 193 90 Q 189 82 167 88 Z", fill: "#aed6ed", cue: [215, 103] },
+            { answer: "Výlevka", path: "M 72 80 Q 50 85 35 66 L 25 72 Q 36 98 72 104 Z", fill: "#aed6ed", cue: [32, 106] }
+          ]
+        },
+        {
+          id: "guitar", title: "Gitara",
+          base: '<path d="M 82 57 C 53 36 34 48 34 82 C 34 115 55 134 82 112 Q 97 101 109 111 C 128 120 143 104 141 84 C 143 61 128 49 109 58 Q 95 67 82 57 Z" fill="#f4c48c" stroke="#8b5f3b" stroke-width="3"/>',
+          parts: [
+            { answer: "Krk", path: "M 140 75 H 193 L 207 68 H 219 V 99 H 206 L 193 92 H 140 Z", fill: "#edb374", cue: [186, 63] },
+            { answer: "Otvor", path: "M 108 67 a 17 17 0 1 1 0 34 a 17 17 0 1 1 0 -34 Z", fill: "#ae8059", cue: [111, 51] },
+            { answer: "Struny", path: "M 60 79 H 209 M 60 85 H 209 M 60 91 H 209", cue: [177, 109] }
+          ]
+        },
+        {
+          id: "backpack", title: "Batôžtek",
+          base: '<path d="M 74 131 V 70 Q 74 42 102 42 H 138 Q 166 42 166 70 V 131 Q 166 145 152 145 H 88 Q 74 145 74 131 Z" fill="#c4d9a5" stroke="#607a49" stroke-width="3"/>',
+          parts: [
+            { answer: "Rúčka", path: "M 105 41 V 30 Q 105 24 112 24 H 128 Q 135 24 135 30 V 41 H 129 V 33 H 111 V 41 Z", fill: "#a2be82", cue: [149, 39] },
+            { answer: "Vrecko", path: "M 91 100 Q 120 86 149 100 V 127 Q 149 135 140 135 H 100 Q 91 135 91 127 Z M 97 109 H 143", fill: "#dfe6a8", cue: [120, 126] },
+            { answer: "Popruhy", path: "M 73 69 Q 51 71 51 113 Q 51 134 68 134 H 73 M 167 69 Q 189 71 189 113 Q 189 134 172 134 H 167", cue: [199, 106] }
+          ]
+        },
+        {
+          id: "fire-engine", title: "Hasičské auto",
+          base: '<path d="M 32 112 V 88 H 52 L 72 64 H 111 V 75 H 198 V 112 Z" fill="#ed9891" stroke="#954e4d" stroke-width="3" stroke-linejoin="round"/><path d="M 121 90 H 190" fill="none" stroke="#ffe8b5" stroke-width="5" stroke-linecap="round"/>',
+          parts: [
+            { answer: "Kolesá", path: "M 67 103 a 12 12 0 1 1 0 24 a 12 12 0 1 1 0 -24 Z M 168 103 a 12 12 0 1 1 0 24 a 12 12 0 1 1 0 -24 Z", fill: "#64748b", cue: [185, 129] },
+            { answer: "Rebrík", path: "M 110 70 L 189 43 M 106 61 L 185 34 M 122 56 L 125 65 M 139 50 L 142 59 M 156 44 L 159 53 M 173 38 L 176 47", cue: [202, 46] },
+            { answer: "Okno", path: "M 59 87 L 74 70 H 95 V 87 Z", fill: "#bde6f2", cue: [83, 106] }
+          ]
+        }
+      ];
+
+      function makeScene(template) {
+        const missing = template.parts[Math.floor(Math.random() * template.parts.length)];
+        const shown = template.parts.filter(part => part !== missing);
+        const [cueX, cueY] = missing.cue;
+        const visible = shown.map(part => `
+          <path d="${part.path}" fill="${part.fill || "none"}" stroke="#475569" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        `).join("");
+        return {
+          title: template.title,
+          answer: missing.answer,
+          distractors: shown.map(part => part.answer),
+          svg: `
+            ${template.base}
+            ${visible}
+            <path d="${missing.path}" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="${cueX}" y="${cueY}" text-anchor="middle" font-size="17" font-weight="850" fill="#b91c1c">?</text>
+          `
+        };
+      }
+
+      function buildCard(item) {
+        const choices = shuffle([item.answer, ...item.distractors]);
+
+        let choicesHtml = "";
+        choices.forEach(c => {
+          choicesHtml += `<span class="choice-bubble">${c}</span>`;
+        });
+
+        const card = document.createElement("article");
+        card.className = "missing-card";
+        card.innerHTML = `
+          <div class="card-header">
+            <h2>${item.title}</h2>
+            <span class="badge">Čo chýba?</span>
+          </div>
+          <svg class="missing-svg" viewBox="0 0 240 160">
+            ${item.svg}
+          </svg>
+          <div class="choices-row">
+            ${choicesHtml}
+          </div>
+        `;
+        return card;
+      }
+
+      let lastScenes = [];
+      function generateWorksheet() {
+        const available = scenes.filter(scene => !lastScenes.includes(scene.id));
+        const availableAssembled = assembledScenes.filter(scene => !lastScenes.includes(scene.id));
+        const assembledCount = 1 + Math.floor(Math.random() * 3);
+        const fixed = shuffle(available).slice(0, 4 - assembledCount);
+        const assembled = shuffle(availableAssembled).slice(0, assembledCount);
+        lastScenes = [...fixed, ...assembled].map(scene => scene.id);
+
+        const grid = document.querySelector("#grid");
+        grid.innerHTML = "";
+        const cards = shuffle([...fixed, ...assembled.map(makeScene)]);
+        cards.forEach(card => grid.appendChild(buildCard(card)));
+      }
+
+      generateWorksheet();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,518 @@
+<!--
+SPDX-FileCopyrightText: 2026 Milan Jankovec
+SPDX-License-Identifier: EUPL-1.2
+-->
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%229%22%20fill%3D%22%23dceedd%22%2F%3E%3Cg%20fill%3D%22%23236747%22%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2210%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2221.7%22%20cy%3D%2214.2%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2219.5%22%20cy%3D%2220.8%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2212.5%22%20cy%3D%2220.8%22%20r%3D%224.5%22%2F%3E%3Ccircle%20cx%3D%2210.3%22%20cy%3D%2214.2%22%20r%3D%224.5%22%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%223.3%22%20fill%3D%22%23ffd46b%22%2F%3E%3C%2Fsvg%3E">
+    <meta name="author" content="Milan Jankovec">
+    <meta name="repository" content="https://github.com/milanjankovec/little-explorers">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Doplň chýbajúcu cestu</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #edf1f6;
+        color: #20252d;
+        font-family: system-ui, sans-serif;
+      }
+      .icon-library { position: absolute; width: 0; height: 0; overflow: hidden; }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        max-width: 210mm;
+        margin: 0 auto 20px;
+      }
+      .toolbar h1 { margin: 0; font-size: 1.4rem; overflow-wrap: anywhere; }
+      .actions { display: flex; gap: 8px; }
+      .actions button {
+        padding: 9px 14px;
+        border: 1px solid #246547;
+        border-radius: 8px;
+        background: #246547;
+        color: white;
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      .actions .secondary { background: white; color: #234235; }
+      .actions button:focus-visible { outline: 2px solid #3158a5; outline-offset: 3px; }
+      .worksheet {
+        width: min(100%, 210mm);
+        margin: 0 auto 24px;
+        padding: 10mm 12mm;
+        background: white;
+        box-shadow: 0 2px 18px #1720331a;
+      }
+      .page-header {
+        margin-bottom: 4mm;
+        padding-bottom: 2mm;
+        border-bottom: .35mm solid #cbd9d0;
+      }
+      .page-header h2 { margin: 0; color: #202f26; font-size: 16pt; line-height: 1.2; }
+      .page-header p { margin: 1.5mm 0 0; color: #35463e; font-size: 10pt; line-height: 1.4; }
+      #worksheet-content { min-width: 0; }
+      #worksheet-content > svg { display: block; width: 100%; height: auto; }
+      .game-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px 11px;
+        width: min(100%, 210mm);
+        margin-inline: auto;
+        padding-block: 9px 5px;
+        border-top: 1px solid #cbd3df;
+        color: #4c5766;
+        font-size: .65rem;
+        line-height: 1.5;
+      }
+
+      .game-footer a {
+        color: inherit;
+        overflow-wrap: anywhere;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .game-footer a:hover { color: #3158a5; background: none; }
+      .game-topbar {
+        max-width: 900px;
+        margin: 0 auto 12px;
+        color: #394553;
+        font: 600 .9rem/1.4 system-ui, sans-serif;
+      }
+
+      .game-brand-row, .game-links {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+      }
+
+      .game-brand-row {
+        min-height: 56px;
+        padding-bottom: 9px;
+        border-bottom: 1px solid #cbd9d0;
+      }
+
+      .game-links { position: relative; padding-top: 8px; }
+      .game-topbar .site-brand, .game-topbar .catalog-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        max-width: 100%;
+        gap: 8px;
+        color: #246547;
+        text-decoration: none;
+      }
+
+      .game-topbar .site-brand { color: #202f26; font-size: 1.06rem; font-weight: 800; }
+      .game-topbar .catalog-link { font-weight: 700; overflow-wrap: anywhere; }
+      .game-topbar .catalog-link:hover, .game-topbar .site-brand:hover { text-decoration: underline; text-underline-offset: .2em; }
+      .catalog-link svg { flex: none; }
+      .game-brand-icon {
+        display: grid;
+        flex: none;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: #dceedd;
+        color: #236747;
+        font-size: 1.25rem;
+        line-height: 1;
+      }
+
+      .language-bar[hidden], .games-menu[hidden] { display: none; }
+      .language-bar { margin-inline-start: auto; }
+      .language-control { display: flex; align-items: center; gap: 7px; }
+      .language-control select {
+        max-width: min(145px, 42vw);
+        padding: 5px 6px;
+        border: 1px solid #cbd3df;
+        border-radius: 6px;
+        background: #fff;
+        color: inherit;
+        font: inherit;
+      }
+
+      .game-topbar :is(a, summary, select):focus-visible {
+        outline: 2px solid #246547;
+        outline-offset: 2px;
+      }
+
+      .games-menu { max-width: 100%; margin-inline-start: auto; }
+      .games-menu summary {
+        min-height: 44px;
+        padding: 10px 12px;
+        border: 1px solid #cbd3df;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+        overflow-wrap: anywhere;
+      }
+
+      .games-menu-panel {
+        position: absolute;
+        z-index: 10;
+        top: calc(100% + 6px);
+        inset-inline-end: 0;
+        width: min(480px, 100%);
+        max-height: min(58vh, 470px);
+        overflow: auto;
+        padding: 8px;
+        border: 1px solid #cbd3df;
+        border-radius: 9px;
+        background: #fff;
+        box-shadow: 0 6px 22px #17203324;
+      }
+
+      .games-menu-panel ul {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 3px 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .games-menu-panel a {
+        display: block;
+        padding: 5px 7px;
+        border-radius: 5px;
+        color: inherit;
+        overflow-wrap: anywhere;
+        text-decoration: none;
+      }
+
+      .games-menu-panel a:hover, .games-menu-panel a[aria-current="page"] { background: #e7f2e8; }
+
+      @media screen and (max-width: 430px) {
+        .games-menu-panel ul { grid-template-columns: 1fr; }
+      }
+
+      @media print { .game-topbar { display: none; } }
+
+      @media (max-width: 640px) {
+        body { padding: 12px; }
+        .toolbar { align-items: flex-start; flex-direction: column; }
+        .actions { width: 100%; }
+        .actions button { flex: 1; }
+        .worksheet { padding: 5mm; }
+      }
+
+      @page { size: A4 portrait; margin: 0; }
+      @media print {
+        body { margin: 0; padding: 0; background: white; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        .toolbar, .language-bar, .game-footer { display: none; }
+        .worksheet {
+          width: 210mm;
+          height: 297mm;
+          margin: 0;
+          padding: 10mm 12mm;
+          box-shadow: none;
+          break-inside: avoid;
+        }
+      }
+    </style>
+    <script type="application/json" id="game-translations">
+    {
+      "Doplň chýbajúcu cestu": ["Complete the Road","Doplň chybějící cestu","Ergänze das Straßenstück","Uzupełnij drogę","Egészítsd ki az utat","Complète la route","Completa el camino","Completa la strada","Completa a estrada","Maak de weg af","Completează drumul","Доповни дорогу","Συμπλήρωσε τον δρόμο","Gör vägen hel","补上缺失的路段","補上缺少的路段","道の続きをつくろう","빠진 길을 이어요","Lengkapi Jalannya","Eksik Yolu Tamamla","Nối đoạn đường còn thiếu","Complete a estrada"],
+      "V každom riadku zakrúžkuj dielik, ktorý pasuje do prázdneho políčka a spojí oba konce cesty. Potom podľa neho dokresli cestu do prázdneho políčka.": ["In each row, circle the piece that fits in the empty square and joins both ends of the road. Then copy its road into the empty square.","V každém řádku zakroužkuj dílek, který pasuje do prázdného políčka a spojí oba konce cesty. Potom podle něj dokresli cestu do prázdného políčka.","Kreise in jeder Reihe das Teil ein, das ins leere Feld passt und beide Enden der Straße verbindet. Zeichne danach die Straße von diesem Teil in das leere Feld.","W każdym rzędzie zakreśl element, który pasuje do pustego pola i łączy oba końce drogi. Potem dorysuj w pustym polu drogę z tego elementu.","Minden sorban karikázd be azt a darabot, amely az üres mezőbe illik, és összeköti az út két végét. Ezután másold át a rajta lévő utat az üres mezőbe.","Sur chaque ligne, entoure la pièce qui remplit la case vide et relie les deux bouts de la route. Dessine ensuite la route de cette pièce dans la case vide.","En cada fila, rodea la pieza que encaja en la casilla vacía y une los dos extremos del camino. Luego copia el camino de la pieza en la casilla vacía.","In ogni riga, cerchia il pezzo che entra nella casella vuota e unisce le due estremità della strada. Poi copia la strada del pezzo nella casella vuota.","Em cada fila, rodeia a peça que encaixa na casa vazia e une as duas pontas da estrada. Depois, copia para a casa vazia a estrada que está na peça.","Omcirkel in elke rij het stukje dat in het lege vak past en de twee uiteinden van de weg verbindt. Teken daarna de weg van dat stukje in het lege vak.","În fiecare rând, încercuiește piesa care se potrivește în căsuța goală și unește cele două capete ale drumului. Apoi copiază drumul de pe piesă în căsuța goală.","У кожному рядку обведи частинку, яка підходить до порожньої клітинки й з’єднує обидва кінці дороги. Потім перемалюй дорогу з цієї частинки в порожню клітинку.","Σε κάθε σειρά, κύκλωσε το κομμάτι που χωρά στο κενό τετράγωνο και ενώνει τις δύο άκρες του δρόμου. Έπειτα ζωγράφισε τον δρόμο του κομματιού στο κενό τετράγωνο.","Ringa i varje rad in biten som passar i den tomma rutan och kopplar ihop vägens ändar. Rita sedan vägen från biten i den tomma rutan.","每行圈出一块能放进空格、把两边的路连起来的路段。 然后照着选中的路段，把路画进空格里。","每列圈出一塊能放進空格、把兩邊的路接起來的路段。 接著照著選中的路段，把路畫進空格裡。","それぞれの列で、空いているマスに入って道の両はしをつなぐピースを丸でかこもう。 えらんだピースを見ながら、空いているマスに道をかこう。","줄마다 빈칸에 들어가서 길의 양쪽 끝을 잇는 조각에 동그라미를 쳐요. 고른 조각을 보고 빈칸에 같은 길을 그려요.","Di setiap baris, lingkari potongan yang pas di kotak kosong dan menyambungkan kedua ujung jalan. Lalu salin jalan pada potongan itu ke kotak kosong.","Her sırada boş kareye uyan ve yolun iki ucunu birleştiren parçayı daire içine al. Sonra seçtiğin parçadaki yolu boş kareye çiz.","Ở mỗi hàng, khoanh tròn mảnh ghép vừa ô trống và nối được hai đầu đường. Sau đó, vẽ đoạn đường trên mảnh ghép vào ô trống.","Em cada linha, circule a peça que encaixa no quadradinho vazio e liga as duas pontas da estrada. Depois, copie o caminho da peça no quadradinho vazio."]
+    }
+    </script>
+    <script>
+      (() => {
+        const languages = {"sk":"Slovenčina","en":"English","cs":"Čeština","de":"Deutsch","pl":"Polski","hu":"Magyar","fr":"Français","es":"Español","it":"Italiano","pt":"Português","nl":"Nederlands","ro":"Română","uk":"Українська","el":"Ελληνικά","sv":"Svenska","zh-Hans":"简体中文","zh-Hant":"繁體中文","ja":"日本語","ko":"한국어","id":"Bahasa Indonesia","tr":"Türkçe","vi":"Tiếng Việt","pt-BR":"Português (Brasil)"};
+        const codes = Object.keys(languages).slice(1);
+        const shared = {"Jazyk":["Language","Jazyk","Sprache","Język","Nyelv","Langue","Idioma","Lingua","Idioma","Taal","Limbă","Мова","Γλώσσα","Språk","语言","語言","言語","언어","Bahasa","Dil","Ngôn ngữ","Idioma"],"Všetky hry":["All games","Všechny hry","Alle Spiele","Wszystkie gry","Minden játék","Tous les jeux","Todos los juegos","Tutti i giochi","Todos os jogos","Alle spellen","Toate jocurile","Усі ігри","Όλα τα παιχνίδια","Alla spel","全部游戏","全部遊戲","すべてのゲーム","모든 놀이","Semua permainan","Tüm oyunlar","Tất cả trò chơi","Todos os jogos"],"Vytlačiť list":["Print worksheet","Vytisknout list","Arbeitsblatt drucken","Drukuj kartę","Feladatlap nyomtatása","Imprimer la fiche","Imprimir la ficha","Stampa la scheda","Imprimir a ficha","Werkblad afdrukken","Tipărește fișa","Друк завдання","Εκτύπωση φύλλου","Skriv ut arbetsblad","打印练习单","列印學習單","ワークシートを印刷","활동지 인쇄","Cetak lembar aktivitas","Çalışma sayfasını yazdır","In phiếu bài tập","Imprimir atividade"],"Vytlačiť hry":["Print games","Vytisknout hry","Spiele drucken","Drukuj gry","Játékok nyomtatása","Imprimer les jeux","Imprimir los juegos","Stampa i giochi","Imprimir os jogos","Spellen afdrukken","Tipărește jocurile","Друк ігор","Εκτύπωση παιχνιδιών","Skriv ut spelen","打印游戏","列印遊戲","ゲームを印刷","놀이 인쇄","Cetak permainan","Oyunları yazdır","In trò chơi","Imprimir os jogos"],"Vytvoril Milan Jankovec":["Created by Milan Jankovec","Vytvořil Milan Jankovec","Erstellt von Milan Jankovec","Autor: Milan Jankovec","Készítette: Milan Jankovec","Créé par Milan Jankovec","Creado por Milan Jankovec","Creato da Milan Jankovec","Criado por Milan Jankovec","Gemaakt door Milan Jankovec","Creat de Milan Jankovec","Автор: Milan Jankovec","Δημιουργός: Milan Jankovec","Skapat av Milan Jankovec","作者：Milan Jankovec","作者：Milan Jankovec","制作 Milan Jankovec","제작 Milan Jankovec","Dibuat oleh Milan Jankovec","Hazırlayan Milan Jankovec","Tác giả Milan Jankovec","Criado por Milan Jankovec"],"Úloha":["Task","Úkol","Aufgabe","Zadanie","Feladat","Exercice","Ejercicio","Esercizio","Exercício","Opdracht","Exercițiu","Завдання","Άσκηση","Uppgift","任务","任務","問題","문제","Tugas","Görev","Nhiệm vụ","Exercício"],"Výber":["Choices","Výběr","Auswahl","Wybór","Választék","Choix","Opciones","Opzioni","Opções","Keuzes","Opțiuni","Варіанти","Επιλογές","Alternativ","选项","選項","選択肢","보기","Pilihan","Seçenekler","Các lựa chọn","Opções"],"Koľko?":["How many?","Kolik?","Wie viele?","Ile?","Hány?","Combien ?","¿Cuántos?","Quanti?","Quantos?","Hoeveel?","Câte?","Скільки?","Πόσα;","Hur många?","有多少？","有多少？","いくつ？","몇 개일까요?","Berapa banyak?","Kaç tane?","Có bao nhiêu?","Quantos?"],"Nové úlohy":["New activities","Nové úkoly","Neue Aufgaben","Nowe zadania","Új feladatok","Nouveaux exercices","Nuevos ejercicios","Nuovi esercizi","Novos exercícios","Nieuwe opdrachten","Exerciții noi","Нові завдання","Νέες ασκήσεις","Nya uppgifter","换一组题目","換一組題目","新しい問題","새 문제","Aktivitas baru","Yeni etkinlikler","Bài tập mới","Novos exercícios"],"Nové obrázky":["New pictures","Nové obrázky","Neue Bilder","Nowe obrazki","Új képek","Nouvelles images","Nuevas imágenes","Nuove immagini","Novas imagens","Nieuwe afbeeldingen","Imagini noi","Нові малюнки","Νέες εικόνες","Nya bilder","换一组图片","換一組圖片","新しい絵","새 그림","Gambar baru","Yeni resimler","Hình mới","Novas imagens"],"Späť na hry":["Back to games","Zpět ke hrám","Zurück zu den Spielen","Wróć do gier","Vissza a játékokhoz","Retour aux jeux","Volver a los juegos","Torna ai giochi","Voltar aos jogos","Terug naar de spellen","Înapoi la jocuri","Назад до ігор","Πίσω στα παιχνίδια","Tillbaka till spelen","返回游戏列表","返回遊戲列表","ゲーム一覧へ戻る","게임 목록으로 돌아가기","Kembali ke daftar permainan","Oyunlara dön","Quay lại danh sách trò chơi","Voltar aos jogos"],"Pracovný list":["Worksheet","Pracovní list","Arbeitsblatt","Karta pracy","Feladatlap","Fiche d’activité","Ficha de actividades","Scheda di attività","Ficha de atividades","Werkblad","Fișă de lucru","Робочий аркуш","Φύλλο εργασίας","Arbetsblad","练习单","學習單","ワークシート","활동지","Lembar aktivitas","Çalışma sayfası","Phiếu bài tập","Folha de atividade"]};
+        const messages = JSON.parse(document.getElementById("game-translations").textContent);
+        const preferenceKey = "hrave-listy-language";
+        const current = new URL(location.href);
+        const resolveLanguage = code => Object.keys(languages).find(key => key.toLowerCase() === code?.toLowerCase());
+        let saved;
+        try { saved = localStorage.getItem(preferenceKey); } catch {}
+        const requested = resolveLanguage(current.searchParams.get("lang"));
+        const language = requested ?? resolveLanguage(saved) ?? "en";
+        const column = codes.indexOf(language);
+
+        function remember(code) {
+          try { localStorage.setItem(preferenceKey, code); } catch {}
+        }
+
+        function localizedUrl(href, code) {
+          const url = new URL(href, location.href);
+          url.searchParams.set("lang", code);
+          return url;
+        }
+
+        function translate(value) {
+          if (language === "sk" || !value) return value;
+          const key = value.trim().replace(/\s+/g, " ");
+          const exact = (messages[key] ?? shared[key])?.[column];
+          if (exact !== undefined) return exact;
+          const numbered = key.match(/^(\d+\.\s+)(.+)$/u);
+          if (numbered) return numbered[1] + translate(numbered[2]);
+          const colon = key.indexOf(":");
+          if (colon > 0) {
+            const label = key.slice(0, colon);
+            const tail = key.slice(colon + 1).trim();
+            const translatedLabel = translate(label);
+            const translatedTail = translate(tail);
+            if (label !== translatedLabel || tail !== translatedTail) {
+              return translatedLabel + ":" + (tail ? " " + translatedTail : "");
+            }
+          }
+          if (key.includes(" | ")) return key.split(" | ").map(translate).join(" | ");
+          if (key.includes(", ")) {
+            const parts = key.split(", ");
+            const translated = parts.map(translate).join(", ");
+            if (translated !== key) return translated;
+          }
+          return value;
+        }
+
+        window.HraveListy = { language, t: translate };
+        document.documentElement.lang = language;
+        if (requested) remember(language);
+
+        const visitedText = new WeakSet();
+        const visitedElements = new WeakSet();
+        const skipped = "script, style, [data-no-l10n]";
+
+        function translateText(node) {
+          if (visitedText.has(node) || node.parentElement?.closest(skipped)) return;
+          visitedText.add(node);
+          const content = node.data.trim();
+          const translated = translate(content);
+          if (content !== translated) node.data = node.data.replace(content, translated);
+        }
+
+        function translateAttributes(element) {
+          if (visitedElements.has(element) || element.closest(skipped)) return;
+          visitedElements.add(element);
+          for (const attribute of ["aria-label", "title", "placeholder"]) {
+            const value = element.getAttribute(attribute);
+            if (value) element.setAttribute(attribute, translate(value));
+          }
+        }
+
+        function translateTree(root) {
+          if (root.nodeType === Node.TEXT_NODE) {
+            translateText(root);
+            return;
+          }
+          if (root.nodeType !== Node.ELEMENT_NODE || root.closest(skipped)) return;
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+          while (walker.nextNode()) translateText(walker.currentNode);
+          translateAttributes(root);
+          root.querySelectorAll("[aria-label], [title], [placeholder]").forEach(translateAttributes);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+          const picker = document.getElementById("worksheet-language");
+          for (const [code, name] of Object.entries(languages)) {
+            const option = new Option(name, code);
+            option.lang = code;
+            option.setAttribute("data-no-l10n", "");
+            picker.add(option);
+          }
+          picker.value = language;
+          const menu = document.getElementById("related-games");
+          if (menu) {
+            const catalog = menu.closest("nav").querySelector(".catalog-link").href;
+            const currentPage = current.pathname.endsWith("/") ? new URL("index.html", current).pathname : current.pathname;
+            for (const game of [{"path":"games/roads/index.html","title":"Detské cestičky","names":["Little mazes","Dětské cestičky","Kleine Labyrinthe","Małe labirynty","Kis útvesztők","Petits labyrinthes","Pequeños laberintos","Piccoli labirinti","Pequenos labirintos","Kleine doolhoven","Mici labirinturi","Маленькі лабіринти","Μικροί λαβύρινθοι","Små labyrinter","小小迷宫","小小迷宮","かんたん迷路","쉬운 미로","Labirin sederhana","Küçük labirentler","Mê cung nhỏ","Pequenos labirintos"]},{"path":"games/collector/index.html","title":"Bludisko so zberom odmien","names":["Star hunt maze","Bludiště se sbíráním hvězdiček","Sternensuche im Labyrinth","Labirynt z gwiazdkami","Csillaggyűjtő útvesztő","Labyrinthe aux étoiles","Laberinto de estrellas","Labirinto delle stelline","Labirinto de estrelas","Sterrenjacht in het doolhof","Labirintul steluțelor","Лабіринт із зірочками","Λαβύρινθος με αστεράκια","Stjärnjakt i labyrinten","寻找星星的迷宫","尋找星星的迷宮","星集め迷路","별 모으기 미로","Labirin berburu bintang","Yıldız avı labirenti","Mê cung tìm sao","Labirinto de estrelas"]},{"path":"games/direction-maze/index.html","title":"Labyrint so šípkami","names":["Arrow maze","Bludiště se šipkami","Pfeillabyrinth","Labirynt ze strzałkami","Nyilas útvesztő","Labyrinthe fléché","Laberinto de flechas","Labirinto con frecce","Labirinto de setas","Pijldoolhof","Labirint cu săgeți","Лабіринт зі стрілками","Λαβύρινθος με βέλη","Pillabyrint","箭头迷宫","箭頭迷宮","矢印迷路","화살표 미로","Labirin panah","Ok labirenti","Mê cung mũi tên","Labirinto de setas"]},{"path":"games/tangled/index.html","title":"Popletené šnúrky","names":["Tangled strings","Zamotané provázky","Verhedderte Schnüre","Poplątane sznurki","Összegubancolódott zsinórok","Ficelles emmêlées","Cuerdas enredadas","Fili aggrovigliati","Fios emaranhados","Verwarde touwtjes","Sfori încâlcite","Заплутані мотузочки","Μπερδεμένα κορδόνια","Trassliga snören","缠在一起的线","纏在一起的線","からまったひも","엉킨 끈","Tali kusut","Dolaşmış ipler","Những sợi dây rối","Fios emaranhados"]},{"path":"games/non-crossing-paths/index.html","title":"Cestičky bez križovania","names":["Paths That Don’t Cross","Cestičky bez křížení","Wege ohne Kreuzung","Ścieżki bez skrzyżowań","Kereszteződés nélküli utak","Des chemins qui ne se croisent pas","Caminos sin cruces","Percorsi senza incroci","Caminhos sem cruzamentos","Paden zonder kruisingen","Drumuri fără intersecții","Стежки без перетинів","Μονοπάτια χωρίς διασταυρώσεις","Vägar som inte korsas","路线不交叉","路線不交叉","交わらない道","서로 만나지 않는 길","Jalur Tanpa Persilangan","Kesişmeyen Yollar","Các đường không giao nhau","Caminhos sem cruzamentos"]},{"path":"games/complete-the-road/index.html","title":"Doplň chýbajúcu cestu","names":["Complete the Road","Doplň chybějící cestu","Ergänze das Straßenstück","Uzupełnij drogę","Egészítsd ki az utat","Complète la route","Completa el camino","Completa la strada","Completa a estrada","Maak de weg af","Completează drumul","Доповни дорогу","Συμπλήρωσε τον δρόμο","Gör vägen hel","补上缺失的路段","補上缺少的路段","道の続きをつくろう","빠진 길을 이어요","Lengkapi Jalannya","Eksik Yolu Tamamla","Nối đoạn đường còn thiếu","Complete a estrada"]},{"path":"games/shortest-delivery/index.html","title":"Najkratší rozvoz","names":["Shortest Delivery Route","Nejkratší rozvoz","Der kürzeste Lieferweg","Najkrótsza dostawa","A legrövidebb szállítási út","La livraison la plus courte","La ruta de reparto más corta","La consegna più breve","A entrega pelo caminho mais curto","De kortste bezorgroute","Cel mai scurt drum de livrare","Найкоротша доставка","Η πιο σύντομη παράδοση","Kortaste leveransvägen","最短送货路线","最短送貨路線","いちばん短い配達の道","가장 짧은 배달길","Rute Antar Terpendek","En Kısa Teslimat Yolu","Đường giao hàng ngắn nhất","O caminho mais curto para a entrega"]},{"path":"games/pattern-path/index.html","title":"Cestička podľa vzoru","names":["Follow the pattern path","Cestička podle vzoru","Musterpfad","Ścieżka według wzoru","Ösvény a minta szerint","Le chemin des motifs","Camino de patrones","Il percorso dei simboli","Caminho do padrão","Het patronenpad","Drumul după model","Стежка за зразком","Μονοπάτι με μοτίβο","Mönsterstigen","按规律找路","按規律找路","もようの道","규칙을 따라 길 찾기","Jalur berpola","Desen yolu","Đường đi theo mẫu","Caminho do padrão"]},{"path":"games/tunnel-train/index.html","title":"Vláčik v tuneloch","names":["Train through tunnels","Vláček v tunelech","Zug durch die Tunnel","Pociąg w tunelach","Vonat az alagutakban","Le train dans les tunnels","El tren en los túneles","Trenino in galleria","Comboio nos túneis","Treintje door de tunnels","Trenul prin tuneluri","Потяг у тунелях","Τρενάκι στις σήραγγες","Tåget genom tunnlarna","小火车穿隧道","小火車穿隧道","トンネルをぬける電車","터널을 지나는 기차","Kereta di terowongan","Tünellerdeki tren","Tàu qua đường hầm","Trenzinho nos túneis"]},{"path":"games/tracing/index.html","title":"Grafomotorické dráhy","names":["Pencil tracing paths","Grafomotorické dráhy","Schwungübungen","Szlaczki do rysowania","Vonalvezető pályák","Chemins à tracer","Caminos para repasar","Percorsi da ripassare","Caminhos para traçar","Lijnen om over te trekken","Trasee de urmărit cu creionul","Доріжки для обведення","Διαδρομές με μολύβι","Rita längs linjerna","沿线描画","沿線描畫","線をなぞろう","선 따라 그리기","Menelusuri jalur dengan pensil","Çizgilerin üzerinden geç","Tô theo đường nét","Caminhos para contornar"]},{"path":"games/shapes/index.html","title":"Obkresľovanie tvarov","names":["Trace the shapes","Obtahování tvarů","Formen nachzeichnen","Rysowanie po konturach","Formák átrajzolása","Tracer les formes","Repasar las formas","Ripassare le forme","Traçar formas","Vormen overtrekken","Contururi de trasat","Обведи фігури","Πέρασε πάνω από τα σχήματα","Följ formernas konturer","描画图形","描畫圖形","形をなぞろう","모양 따라 그리기","Jiplak bentuk","Şekillerin üzerinden geç","Tô theo hình","Traçar formas"]},{"path":"games/dots/index.html","title":"Spájanie bodiek","names":["Connect the dots","Spojování teček","Punkte verbinden","Łączenie kropek","Pontok összekötése","Relier les points","Unir los puntos","Unisci i puntini","Ligar os pontos","Verbind de stippen","Unește punctele","З’єднай крапки","Ένωσε τις τελείες","Dra streck mellan prickarna","按序连点","按序連點","点つなぎ","점 잇기","Hubungkan titik-titik","Noktaları birleştir","Nối các chấm","Ligar os pontos"]},{"path":"games/mirror/index.html","title":"Zrkadlová hra","names":["Mirror drawing","Zrcadlové kreslení","Spiegelbilder","Rysowanie lustrzane","Tükörrajz","Dessin en miroir","Dibujo en espejo","Disegno a specchio","Desenho em espelho","Spiegeltekenen","Desen în oglindă","Дзеркальний малюнок","Κατοπτρική ζωγραφική","Spegelbilder","对称绘画","對稱繪畫","鏡うつしのお絵かき","거울 그림","Gambar cermin","Aynadaki resmi çiz","Vẽ đối xứng","Desenho em espelho"]},{"path":"games/symbol-colouring/index.html","title":"Vyfarbi podľa značiek","names":["Colour by Symbol","Vybarvování podle značek","Malen nach Symbolen","Kolorowanie według symboli","Színezés jelek szerint","Coloriage par symboles","Colorea según los símbolos","Colora con i simboli","Pinta pelos símbolos","Kleuren op symbool","Colorează după simboluri","Розфарбуй за символами","Χρωμάτισε με σύμβολα","Färglägg efter symboler","按符号涂色","依符號著色","マークを見て色ぬり","기호대로 색칠하기","Mewarnai Sesuai Simbol","Sembollere Göre Boya","Tô màu theo ký hiệu","Pinte pelos símbolos"]},{"path":"games/cut-out-puzzles/index.html","title":"Papierové puzzle","names":["Cut-out Puzzles","Vystřihni a slož","Ausschneiden und puzzeln","Wytnij i ułóż","Kivágós kirakó","Puzzles à découper","Puzles para recortar","Puzzle da ritagliare","Puzzles para recortar","Knippen en puzzelen","Decupează și potrivește","Виріж і склади","Παζλ για κόψιμο","Klipp och pussla","剪一剪，拼一拼","剪一剪，拼一拼","切って作るパズル","오려서 퍼즐 맞추기","Teka-teki Gunting dan Susun","Kes ve Birleştir","Cắt và ghép hình","Quebra-cabeças para recortar"]},{"path":"games/shape-builders/index.html","title":"Poskladaj obrázok z tvarov","names":["Build with Shapes","Skládání z tvarů","Bilder aus Formen","Układanie z kształtów","Kép formákból","Images en formes","Construye con formas","Componi con le forme","Constrói com formas","Bouwen met vormen","Construiește din forme","Склади малюнок із фігур","Φτιάξε εικόνες με σχήματα","Bygg med former","用图形拼图片","用圖形拼圖片","形を組み合わせよう","도형으로 그림 만들기","Menyusun Bentuk","Şekillerle Resim Yap","Ghép tranh bằng các hình","Monte com formas"]},{"path":"games/cutting-lines/index.html","title":"Strihaj po čiare","names":["Cut along the lines","Stříhej po čáře","Schneide entlang der Linien","Tnij wzdłuż linii","Vágj a vonal mentén","Découpe le long des lignes","Recorta por las líneas","Ritaglia lungo le linee","Recorta pelas linhas","Knip langs de lijnen","Decupează pe linii","Вирізай по лініях","Κόψε πάνω στις γραμμές","Klipp längs linjerna","沿着线剪","沿著線剪","線にそって切ろう","선을 따라 잘라요","Gunting mengikuti garis","Çizgiler boyunca kes","Cắt theo đường kẻ","Recorte pelas linhas"]},{"path":"games/paper-folding/index.html","title":"Skladaj podľa záhybov","names":["Fold along the Lines","Skládej podle ohybů","Falten entlang der Linien","Składaj wzdłuż linii","Hajtogass a vonalak mentén","Plie le long des lignes","Dobla por las líneas","Piega lungo le linee","Dobra pelas linhas","Vouw langs de lijnen","Îndoaie pe linii","Згинай за лініями","Δίπλωσε στις γραμμές","Vik längs linjerna","沿线折纸","沿線摺紙","線にそっておろう","접는 선을 따라 접어요","Lipat Mengikuti Garis","Çizgilerden Katla","Gấp theo nếp","Dobre pelas linhas"]},{"path":"games/mix-colours/index.html","title":"Zmiešaj farby","names":["Mix the Colours","Smíchej barvy","Misch die Farben","Zmieszaj kolory","Keverd a színeket","Mélange les couleurs","Mezcla los colores","Mescola i colori","Mistura as cores","Meng de kleuren","Amestecă culorile","Змішай кольори","Ανάμειξε τα χρώματα","Blanda färgerna","混合颜色","混合顏色","色をまぜよう","색을 섞어 봐요","Campur Warnanya","Renkleri Karıştır","Pha màu","Misture as cores"]},{"path":"games/one-stroke/index.html","title":"Jedným ťahom","names":["One Stroke","Jedním tahem","In einem Zug","Jednym pociągnięciem","Egyetlen vonással","D’un seul trait","De un solo trazo","Con un solo tratto","De um só traço","In één beweging","Dintr-o singură mișcare","Одним рухом","Μονοκοντυλιά","Med ett enda streck","一笔画","一筆畫","ひとふででかこう","한 번에 그려요","Satu Tarikan","Tek Çizgide","Vẽ một nét","Com um só traço"]},{"path":"games/count-match/index.html","title":"Spočítaj a zakrúžkuj číslo","names":["Count and Circle the Number","Spočítej a zakroužkuj číslo","Zähle und kreise die Zahl ein","Policz i zakreśl liczbę","Számold meg, és karikázd be a számot","Compte et entoure le nombre","Cuenta y rodea el número","Conta e cerchia il numero","Conta e rodeia o número","Tel en omcirkel het getal","Numără și încercuiește numărul","Полічи й обведи число","Μέτρησε και κύκλωσε τον αριθμό","Räkna och ringa in talet","数一数，圈出数字","數一數，圈出數字","数えて数字に丸をつけよう","세고 숫자에 동그라미","Hitung dan lingkari angka","Say ve doğru sayıyı yuvarlak içine al","Đếm và khoanh tròn số","Conte e circule o número"]},{"path":"games/dot-counting/index.html","title":"Urob toľko bodiek","names":["Make That Many Dots","Udělej tolik teček","So viele Punkte","Zrób tyle kropek","Rajzolj ennyi pöttyöt","Fais autant de points","Haz esa cantidad de puntitos","Fai tanti puntini","Faz essa quantidade de bolinhas","Maak zoveel stippen","Fă tot atâtea puncte","Намалюй стільки крапок","Κάνε τόσες τελείες","Gör så många prickar","按数字画圆点","依數字畫圓點","数字のぶんだけ点を描こう","숫자만큼 점 찍기","Buat titik sesuai angka","Sayı kadar nokta çiz","Chấm đúng số chấm","Faça bolinhas de acordo com o número"]},{"path":"games/ispy/index.html","title":"Hľadaj a spočítaj","names":["Find and Count","Hledej a spočítej","Suchen und zählen","Znajdź i policz","Keresd meg és számold meg","Cherche et compte","Busca y cuenta","Cerca e conta","Procura e conta","Zoek en tel","Caută și numără","Знайди й полічи","Βρες και μέτρησε","Hitta och räkna","找一找，数一数","找一找，數一數","探して数えよう","찾아서 세기","Cari dan hitung","Bul ve say","Tìm và đếm","Encontre e conte"]},{"path":"games/big-small/index.html","title":"Veľký a malý","names":["Big and Small","Velký a malý","Groß und klein","Duży i mały","Nagy és kicsi","Grand et petit","Grande y pequeño","Grande e piccolo","Grande e pequeno","Groot en klein","Mare și mic","Великий і малий","Μεγάλο και μικρό","Stort och litet","比大小","比大小","大きい・小さい","크다, 작다","Besar dan kecil","Büyük ve küçük","To và nhỏ","Grande e pequeno"]},{"path":"games/compare-counts/index.html","title":"Viac, menej alebo rovnako","names":["More, fewer or the same","Více, méně nebo stejně","Mehr, weniger oder gleich viel","Więcej, mniej czy tyle samo","Több, kevesebb vagy ugyanannyi","Plus, moins ou autant","Más, menos o igual","Di più, di meno o uguale","Mais, menos ou igual","Meer, minder of evenveel","Mai multe, mai puține sau tot atâtea","Більше, менше чи порівну","Περισσότερα, λιγότερα ή ίσα","Fler, färre eller lika många","更多、更少还是一样多","更多、更少還是一樣多","多い・少ない・同じ","더 많다, 더 적다, 같다","Lebih banyak, lebih sedikit, atau sama","Daha çok, daha az ya da eşit","Nhiều hơn, ít hơn hay bằng nhau","Mais, menos ou igual"]},{"path":"games/share-fairly/index.html","title":"Rozdeľ spravodlivo","names":["Share fairly","Rozděl spravedlivě","Teile gerecht","Podziel po równo","Oszd el igazságosan","Partage équitablement","Reparte por igual","Dividi in parti uguali","Divide por igual","Verdeel eerlijk","Împarte în mod egal","Поділи порівну","Μοίρασε δίκαια","Dela rättvist","平均分一分","平均分一分","同じ数に分けよう","똑같이 나누기","Bagi sama rata","Eşit paylaştır","Chia đều","Divida por igual"]},{"path":"games/measure-with-blocks/index.html","title":"Zmeraj kockami","names":["Measure with blocks","Změř kostkami","Mit Klötzchen messen","Zmierz klockami","Mérj kockákkal","Mesurer avec des cubes","Medir con bloques","Misurare con i cubetti","Medir com blocos","Met blokjes meten","Măsoară cu cuburi","Виміряй кубиками","Μέτρησε με κυβάκια","Mät med klossar","用积木测量","用積木測量","つみきではかろう","블록으로 길이 재기","Ukur dengan balok","Bloklarla ölç","Đo bằng khối vuông","Medir com blocos"]},{"path":"games/picture-graph/index.html","title":"Obrázkový graf","names":["Picture graph","Obrázkový graf","Bilderdiagramm","Wykres obrazkowy","Képes diagram","Graphique en images","Gráfico de imágenes","Grafico degli animali","Gráfico de imagens","Plaatjesgrafiek","Grafic cu imagini","Графік з малюнками","Γράφημα με εικόνες","Bilddiagram","图画统计图","圖畫統計圖","絵のグラフ","그림 그래프","Grafik gambar","Resimli grafik","Biểu đồ hình ảnh","Gráfico de figuras"]},{"path":"games/little-shop/index.html","title":"Malý obchod","names":["Little shop","Malý obchod","Kleiner Laden","Mały sklep","Kis bolt","Petit magasin","Pequeña tienda","Piccolo negozio","Lojinha","Winkeltje","Magazinul cel mic","Маленька крамничка","Μικρό μαγαζί","Lilla affären","小商店","小商店","小さなおみせ","작은 가게","Toko kecil","Küçük dükkân","Cửa hàng nhỏ","Lojinha"]},{"path":"games/dice-race/index.html","title":"Preteky s kockou","names":["Dice race","Závod s kostkou","Würfelrennen","Wyścig z kostką","Dobókockás verseny","Course aux dés","Carrera con dado","Corsa con il dado","Corrida com dado","Dobbelrace","Cursa cu zarul","Перегони з кубиком","Αγώνας με ζάρι","Tärningsrace","骰子赛跑","骰子賽跑","さいころレース","주사위 경주","Balap dadu","Zar yarışı","Đua xúc xắc","Corrida com dado"]},{"path":"games/add-or-take/index.html","title":"Pridaj alebo uber","names":["Add or take away","Přidej nebo uber","Dazu oder weg","Dodaj lub zabierz","Adj hozzá vagy vegyél el","Ajoute ou enlève","Suma o quita","Aggiungi o togli","Junta ou tira","Erbij of eraf","Adaugă sau ia","Додай або забери","Πρόσθεσε ή βγάλε","Lägg till eller ta bort","加一加，减一减","加一加，減一減","たそう、ひこう","더하거나 빼요","Tambah atau kurangi","Ekle veya çıkar","Thêm hoặc bớt","Some ou tire"]},{"path":"games/balance-scale/index.html","title":"Vyrovnaj váhu","names":["Balance the scale","Vyrovnej váhy","Bring die Waage ins Gleichgewicht","Zrównoważ wagę","Egyensúlyozd ki a mérleget","Équilibre la balance","Equilibra la balanza","Bilancia i piatti","Equilibra a balança","Breng de weegschaal in balans","Echilibrează balanța","Урівноваж терези","Ισορρόπησε τη ζυγαριά","Balansera vågen","让天平平衡","讓天平平衡","てんびんをつりあわせよう","저울 맞추기","Seimbangkan timbangan","Teraziyi dengele","Cân bằng cân","Equilibre a balança"]},{"path":"games/patterns/index.html","title":"Doplň logický rad","names":["Complete the pattern","Doplň logickou řadu","Ergänze die Bilderreihe","Uzupełnij ciąg obrazków","Egészítsd ki a képsort","Complète la suite d’images","Completa la serie","Completa la sequenza","Completa a sequência","Maak de reeks af","Completează șirul","Доповни ряд","Συμπλήρωσε το μοτίβο","Fyll i mönstret","补全图案规律","補全圖案規律","絵の続きを見つけよう","규칙에 맞게 채우기","Lengkapi pola","Örüntüyü tamamla","Điền tiếp quy luật","Complete a sequência"]},{"path":"games/odd-one-out/index.html","title":"Čo sem nepatrí?","names":["Which one doesn’t belong?","Co sem nepatří?","Was passt nicht dazu?","Co tu nie pasuje?","Melyik nem illik ide?","Quel est l’intrus ?","¿Cuál no encaja?","Qual è l’intruso?","Qual é o intruso?","Welke hoort er niet bij?","Care nu se potrivește?","Що зайве?","Ποιο δεν ταιριάζει;","Vilken passar inte in?","哪个不属于这一组？","哪個不屬於這一組？","仲間はずれはどれ？","나머지와 다른 그림은?","Mana yang tidak sekelompok?","Hangisi gruba ait değil?","Hình nào khác nhóm?","Qual não faz parte do grupo?"]},{"path":"games/sorting/index.html","title":"Zotriedenie do košíkov","names":["Sort into Baskets","Třídění do košíků","In Körbe sortieren","Sortowanie do koszyków","Válogatás kosarakba","Trie dans les paniers","Clasifica en cestas","Dividi nei cestini","Separa pelos cestos","Sorteer in mandjes","Sortează în coșuri","Сортування в кошики","Ταξινόμησε σε καλάθια","Sortera i korgar","分到不同篮子里","分到不同籃子裡","かごに分けよう","바구니에 나누어 담기","Kelompokkan ke dalam keranjang","Sepetlere ayır","Xếp vào giỏ","Separe nas cestas"]},{"path":"games/shadows/index.html","title":"Spájanie tieňov","names":["Shadow Matching","Spojování stínů","Schatten zuordnen","Dopasowywanie cieni","Árnyékpárosító","Associe les ombres","Empareja las sombras","Abbina le ombre","Encontra as sombras","Zoek de schaduwen","Potrivește umbrele","Знайди тіні","Αντιστοίχισε τις σκιές","Matcha skuggor","找影子","找影子","影を見つけよう","그림자 짝 찾기","Cocokkan bayangan","Gölgeleri eşleştir","Ghép bóng","Encontre as sombras"]},{"path":"games/whats-missing/index.html","title":"Čo chýba na obrázku?","names":["What’s missing?","Co chybí na obrázku?","Was fehlt im Bild?","Czego brakuje na obrazku?","Mi hiányzik a képről?","Que manque-t-il dans l’image ?","¿Qué falta en el dibujo?","Cosa manca nell’immagine?","O que falta na imagem?","Wat ontbreekt op de afbeelding?","Ce lipsește din imagine?","Чого бракує на малюнку?","Τι λείπει από την εικόνα;","Vad saknas i bilden?","图上少了什么？","圖上少了什麼？","何が足りない？","무엇이 빠졌을까요?","Apa yang hilang?","Ne eksik?","Thiếu gì?","O que falta na imagem?"]},{"path":"games/memory-cards/index.html","title":"Pexeso na vystrihnutie","names":["Cut-out matching cards","Pexeso k vystřižení","Memory-Karten zum Ausschneiden","Karty do gry w pary","Kivágható memóriajáték","Jeu de mémoire à découper","Juego de memoria para recortar","Carte del memory da ritagliare","Jogo da memória para recortar","Memorykaartjes om uit te knippen","Joc de memorie de decupat","Картки для гри в пари","Κάρτες μνήμης για κόψιμο","Memorykort att klippa ut","剪卡片，找对子","剪卡片，找對子","切って遊ぶ絵合わせカード","오려 쓰는 짝 맞추기 카드","Kartu pasangan untuk digunting","Kes ve eşleştir","Cắt thẻ tìm cặp","Jogo da memória para recortar"]},{"path":"games/same-picture/index.html","title":"Nájdi rovnaký obrázok","names":["Find the identical picture","Najdi stejný obrázek","Finde das gleiche Bild","Znajdź taki sam obrazek","Keresd meg az egyforma képet","Trouve l’image identique","Encuentra el dibujo idéntico","Trova l’immagine uguale","Encontra a imagem igual","Vind het gelijke plaatje","Găsește imaginea identică","Знайди однаковий малюнок","Βρες την ίδια εικόνα","Hitta samma bild","找出一模一样的图片","找出一模一樣的圖片","同じ絵を探そう","똑같은 그림 찾기","Cari gambar yang sama persis","Aynı resmi bul","Tìm hình giống hệt","Encontre a imagem igual"]},{"path":"games/matching-pairs/index.html","title":"Čo patrí k sebe?","names":["What goes together?","Co patří k sobě?","Was gehört zusammen?","Co do siebie pasuje?","Mi tartozik össze?","Qu’est-ce qui va ensemble ?","¿Qué va con qué?","Cosa va insieme?","O que combina?","Wat hoort bij elkaar?","Ce se potrivește?","Що до чого підходить?","Τι ταιριάζει μαζί;","Vad hör ihop?","哪两个是一对？","哪兩個是一對？","何と何がセットかな？","무엇끼리 어울릴까요?","Apa pasangannya?","Hangileri birbirine uyar?","Những gì đi cùng nhau?","O que combina?"]},{"path":"games/picture-sequence/index.html","title":"Čo bolo najprv?","names":["What happened first?","Co bylo nejdřív?","Was kam zuerst?","Co było najpierw?","Mi történt először?","Qu’est-il arrivé en premier ?","¿Qué pasó primero?","Cosa è successo per primo?","O que aconteceu primeiro?","Wat gebeurde eerst?","Ce s-a întâmplat mai întâi?","Що було спочатку?","Τι έγινε πρώτα;","Vad hände först?","什么先发生？","什麼先發生？","はじめに何が起きた？","무엇이 먼저였을까요?","Apa yang terjadi dulu?","Önce ne oldu?","Chuyện gì xảy ra trước?","O que aconteceu primeiro?"]},{"path":"games/picture-domino/index.html","title":"Obrázkové domino","names":["Picture dominoes","Obrázkové domino","Bilderdomino","Domino obrazkowe","Képes dominó","Dominos en images","Dominó de imágenes","Domino delle immagini","Dominó de imagens","Plaatjesdomino","Domino cu imagini","Доміно з малюнками","Ντόμινο με εικόνες","Bilddomino","图案多米诺","圖案骨牌","絵合わせドミノ","그림 도미노","Domino gambar","Resimli domino","Đô-mi-nô hình ảnh","Dominó de figuras"]},{"path":"games/picture-sudoku/index.html","title":"Mini sudoku s obrázkami","names":["Picture sudoku","Obrázkové sudoku","Bildersudoku","Sudoku obrazkowe","Képes sudoku","Sudoku en images","Sudoku de imágenes","Sudoku delle forme","Sudoku de imagens","Plaatjessudoku","Sudoku cu imagini","Судоку з малюнками","Σουντόκου με εικόνες","Bildsudoku","图形数独","圖形數獨","形のすうどく","모양 스도쿠","Sudoku gambar","Resimli sudoku","Sudoku hình ảnh","Sudoku de figuras"]},{"path":"games/find-teddy/index.html","title":"Kde je medvedík?","names":["Find the teddy","Najdi medvídka","Finde den Teddy","Znajdź misia","Találd meg a macit","Trouve le nounours","Encuentra al osito","Trova l’orsetto","Encontra o ursinho","Vind de teddybeer","Găsește ursulețul","Знайди ведмедика","Βρες το αρκουδάκι","Hitta nallen","找到小熊","找到小熊","くまのぬいぐるみをさがそう","곰 인형을 찾아요","Cari boneka beruang","Oyuncak ayıyı bul","Tìm gấu bông","Encontre o ursinho"]},{"path":"games/picture-bingo/index.html","title":"Obrázkové bingo","names":["Picture bingo","Obrázkové bingo","Bilderbingo","Bingo obrazkowe","Képes bingó","Bingo des images","Bingo de imágenes","Bingo delle immagini","Bingo de imagens","Plaatjesbingo","Bingo cu imagini","Бінго з малюнками","Μπίνγκο με εικόνες","Bildbingo","图案宾果","圖案賓果","絵のビンゴ","그림 빙고","Bingo gambar","Resimli bingo","Bingo hình ảnh","Bingo de figuras"]},{"path":"games/feelings/index.html","title":"Ako sa cíti?","names":["How do you feel?","Jak se cítíš?","Wie fühlst du dich?","Jak się czujesz?","Hogy érzed magad?","Comment te sens-tu ?","¿Cómo te sientes?","Come ti senti?","Como te sentes?","Hoe voel jij je?","Cum te simți?","Що ти відчуваєш?","Πώς νιώθεις;","Hur känner du dig?","你会有什么感受？","你會有什麼感受？","どんな気もちかな？","어떤 기분이 들까요?","Bagaimana perasaanmu?","Nasıl hissedersin?","Em cảm thấy thế nào?","Como você se sente?"]},{"path":"games/grid-memory/index.html","title":"Zapamätaj si mriežku","names":["Remember the Grid","Zapamatuj si mřížku","Merk dir das Gitter","Zapamiętaj siatkę","Jegyezd meg a rácsot","Mémorise la grille","Recuerda la cuadrícula","Ricorda la griglia","Memoriza a grelha","Onthoud het rooster","Memorează grila","Запам’ятай сітку","Θυμήσου το πλέγμα","Kom ihåg rutnätet","记住格子","記住格子","マスをおぼえよう","칸의 위치를 기억해요","Ingat Kotaknya","Kareleri Hatırla","Nhớ vị trí trong ô","Memorize a grade"]},{"path":"games/two-rules/index.html","title":"Dve pravidlá naraz","names":["Two Rules at Once","Dvě pravidla najednou","Zwei Regeln auf einmal","Dwie zasady naraz","Két szabály egyszerre","Deux règles à la fois","Dos reglas a la vez","Due regole insieme","Duas regras ao mesmo tempo","Twee regels tegelijk","Două reguli deodată","Два правила одночасно","Δύο κανόνες μαζί","Två regler samtidigt","同时满足两条规则","同時符合兩個規則","二つのルールをいっしょに","두 가지 규칙을 한꺼번에","Dua Aturan Sekaligus","İki Kural Birden","Hai quy tắc cùng lúc","Duas regras de uma vez"]},{"path":"games/weather-clothes/index.html","title":"Obleč sa podľa počasia","names":["Dress for the Weather","Oblékni se podle počasí","Zieh dich passend zum Wetter an","Ubierz się odpowiednio do pogody","Öltözz az időjáráshoz","Habille-toi selon la météo","Vístete según el tiempo","Vestiti secondo il tempo","Veste-te conforme o tempo","Kleed je naar het weer","Îmbracă-te potrivit vremii","Одягнися за погодою","Ντύσου ανάλογα με τον καιρό","Klä dig efter vädret","看天气选衣服","看天氣選衣服","お天気に合う服をえらぼう","날씨에 맞게 입어요","Berpakaian Sesuai Cuaca","Havaya Göre Giyin","Mặc đồ theo thời tiết","Vista-se de acordo com o tempo"]},{"path":"games/picture-code/index.html","title":"Obrázková šifra","names":["Picture code","Obrázková šifra","Bildercode","Szyfr obrazkowy","Képes titkosírás","Code en images","Código de dibujos","Codice delle immagini","Código de imagens","Plaatjescode","Codul imaginilor","Шифр у малюнках","Κώδικας με εικόνες","Bildkod","图画密码","圖畫密碼","絵のあんごう","그림 암호","Kode gambar","Resimli şifre","Mật mã hình ảnh","Código de figuras"]},{"path":"games/float-or-sink/index.html","title":"Pláva alebo klesne?","names":["Float or sink?","Plave, nebo klesne?","Schwimmt es oder sinkt es?","Pływa czy tonie?","Úszik vagy elsüllyed?","Ça flotte ou ça coule ?","¿Flota o se hunde?","Galleggia o affonda?","Flutua ou afunda?","Drijft het of zinkt het?","Plutește sau se scufundă?","Плаває чи тоне?","Επιπλέει ή βυθίζεται;","Flyter eller sjunker?","会浮还是会沉？","會浮還是會沉？","うくかな、しずむかな？","뜰까요, 가라앉을까요?","Mengapung atau tenggelam?","Yüzer mi, batar mı?","Nổi hay chìm?","Flutua ou afunda?"]},{"path":"games/top-view/index.html","title":"Pohľad zhora","names":["View from Above","Pohled shora","Blick von oben","Widok z góry","Nézet felülről","Vue de dessus","Vista desde arriba","Vista dall’alto","Vista de cima","Van boven gezien","Vedere de sus","Вигляд згори","Όψη από πάνω","Ovanifrån","从上面看","從上面看","上から見てみよう","위에서 바라봐요","Tampak dari Atas","Üstten Görünüm","Nhìn từ trên xuống","Vista de cima"]},{"path":"games/touch-hunt/index.html","title":"Hmatové pátranie","names":["Touch hunt","Hmatové pátrání","Fühl-Suche","Poszukiwanie dotykiem","Tapintós kereső","Le sac à deviner","Búsqueda con el tacto","Cerca con il tatto","Descobre pelo tato","Voel en zoek","Caută prin pipăit","Пошук на дотик","Ψάξε με την αφή","Känn och hitta","摸一摸，找一找","摸一摸，找一找","さわってさがそう","만져 보고 찾아요","Raba dan temukan","Dokun ve bul","Sờ và tìm","Descubra pelo tato"]},{"path":"games/first-letter/index.html","title":"Prvé písmenká","names":["First letters","První písmenka","Erste Buchstaben","Pierwsze litery","Első betűk","Premières lettres","Primeras letras","Prime lettere","Primeiras letras","Eerste letters","Primele litere","Перші літери","Πρώτα γράμματα","Första bokstaven","找开头的汉字","找開頭的漢字","はじめの文字","첫 글자","Huruf awal","İlk harfler","Chữ cái đầu","Primeiras letras"]},{"path":"games/rhymes/index.html","title":"Rýmovačky","names":["Rhymes","Rýmovačky","Reime","Rymowanki","Rímek","Rimes","Rimas","Rime","Rimas","Rijmen","Rime","Рими","Ομοιοκαταληξίες","Rim","词语押韵","詞語押韻","同じ音で終わる言葉","끝소리가 같은 낱말","Sajak","Kafiyeli sözcükler","Từ cùng vần","Rimas"]},{"path":"games/clap-syllables/index.html","title":"Vytlieskaj slabiky","names":["Clap the syllables","Vytleskej slabiky","Klatsche die Silben","Wyklaszcz sylaby","Tapsold el a szótagokat","Tape les syllabes","Da palmas por cada sílaba","Batti le mani per ogni sillaba","Bate palmas para cada sílaba","Klap de lettergrepen","Bate din palme pentru fiecare silabă","Проплескай склади","Χτύπα παλαμάκια για τις συλλαβές","Klappa stavelserna","拍手数音节","拍手數音節","ことばにあわせて手をたたこう","음절을 세어 봐요","Tepuk suku kata","Hecele ve alkışla","Vỗ tay đếm tiếng","Bata palmas e conte as sílabas"]},{"path":"games/story-maker/index.html","title":"Vymysli príbeh","names":["Make up a story","Vymysli příběh","Erfinde eine Geschichte","Wymyśl opowieść","Találj ki egy mesét","Invente une histoire","Inventa una historia","Inventa una storia","Inventa uma história","Verzin een verhaal","Inventează o poveste","Вигадай історію","Φτιάξε μια ιστορία","Hitta på en berättelse","编一个故事","編一個故事","お話をつくろう","이야기를 지어요","Buat cerita sendiri","Bir hikâye oluştur","Nghĩ ra một câu chuyện","Invente uma história"]},{"path":"games/listen-and-draw/index.html","title":"Počúvaj a kresli","names":["Listen and draw","Poslouchej a kresli","Hör zu und zeichne","Posłuchaj i narysuj","Figyelj és rajzolj","Écoute et dessine","Escucha y dibuja","Ascolta e disegna","Ouve e desenha","Luister en teken","Ascultă și desenează","Слухай і малюй","Άκου και ζωγράφισε","Lyssna och rita","听一听，画一画","聽一聽，畫一畫","聞いてかこう","듣고 그려요","Dengarkan dan gambar","Dinle ve çiz","Nghe và vẽ","Escute e desenhe"]},{"path":"games/play-the-rhythm/index.html","title":"Zahraj rytmus","names":["Play the rhythm","Zahraj rytmus","Spiel den Rhythmus","Zagraj rytm","Játszd el a ritmust","Joue le rythme","Sigue el ritmo","Suona il ritmo","Toca o ritmo","Speel het ritme","Cântă ritmul","Зіграй ритм","Παίξε τον ρυθμό","Spela rytmen","跟着图画打节拍","跟著圖畫打節拍","リズムであそぼう","리듬을 따라 해요","Mainkan iramanya","Ritmi çal","Chơi theo nhịp","Toque o ritmo"]},{"path":"games/hear-the-difference/index.html","title":"Počuj rozdiel","names":["Hear the difference","Slyš rozdíl","Hör den Unterschied","Usłysz różnicę","Halld meg a különbséget","Écoute la différence","Oye la diferencia","Senti la differenza","Ouve a diferença","Hoor het verschil","Auzi diferența","Почуй різницю","Άκου τη διαφορά","Hör skillnaden","听出不同","聽出不同","にた音を聞き分けよう","다른 소리를 들어요","Dengar perbedaannya","Farkı duy","Nghe và phân biệt","Escute a diferença"]},{"path":"games/build-a-word/index.html","title":"Zlož slovo z častí","names":["Build a word","Slož slovo z částí","Setz das Wort zusammen","Złóż słowo z części","Rakd össze a szót","Assemble le mot","Une las partes de la palabra","Componi la parola","Junta as partes da palavra","Maak het woord","Alcătuiește cuvântul","Склади слово з частин","Φτιάξε τη λέξη","Sätt ihop ordet","拼出一个词","拼出一個詞","音をつないでことばにしよう","소리를 모아 낱말을 만들어요","Rangkai kata","Sözcüğü oluştur","Ghép các tiếng thành từ","Monte a palavra"]},{"path":"games/finish-the-sentence/index.html","title":"Dokonči vetu","names":["Finish the sentence","Dokonči větu","Vervollständige den Satz","Dokończ zdanie","Fejezd be a mondatot","Complète la phrase","Completa la frase","Completa la frase","Completa a frase","Maak de zin af","Completează propoziția","Закінчи речення","Συμπλήρωσε την πρόταση","Avsluta meningen","把句子补完整","把句子補完整","文のつづきをえらぼう","문장 완성하기","Lengkapi kalimat","Cümleyi tamamla","Hoàn thành câu","Complete a frase"]},{"path":"games/say-the-opposite/index.html","title":"Povedz opak","names":["Say the opposite","Řekni opak","Sag das Gegenteil","Powiedz, co jest odwrotnością","Mondd az ellenkezőjét","Dis le contraire","Di lo contrario","Di’ il contrario","Diz o contrário","Zeg het tegenovergestelde","Spune opusul","Скажи протилежне","Πες το αντίθετο","Säg motsatsen","说出反义词","說出反義詞","はんたいをいおう","반대말을 말해요","Sebutkan lawannya","Zıddını söyle","Nói điều ngược lại","Diga o contrário"]},{"path":"games/word-under-magnifier/index.html","title":"Slovo pod lupou","names":["Word Under the Magnifier","Slovo pod lupou","Wörter unter der Lupe","Słowo pod lupą","Szó a nagyító alatt","Un mot à la loupe","Una palabra bajo la lupa","Parole sotto la lente","Palavras à lupa","Woorden onder de loep","Cuvântul sub lupă","Слово під лупою","Λέξεις στον μεγεθυντικό φακό","Ord under lupp","放大镜找汉字","放大鏡找漢字","ことばを よく見よう","낱말 돋보기","Kata dalam Kaca Pembesar","Büyüteç Altındaki Sözcük","Soi từ bằng kính lúp","Palavras na lupa"]}]) {
+              const item = document.createElement("li");
+              const link = document.createElement("a");
+              const url = localizedUrl(new URL(game.path, catalog), language);
+              link.href = url.href;
+              link.textContent = language === "sk" ? game.title : game.names[column];
+              link.setAttribute("data-no-l10n", "");
+              if (url.pathname === currentPage) link.setAttribute("aria-current", "page");
+              item.appendChild(link);
+              menu.appendChild(item);
+            }
+            menu.closest("details").hidden = false;
+          }
+          picker.closest(".language-bar").hidden = false;
+          picker.addEventListener("change", () => {
+            const chosen = picker.value;
+            if (Object.hasOwn(languages, chosen) && chosen !== language) {
+              remember(chosen);
+              location.replace(localizedUrl(location.href, chosen).href);
+            }
+          });
+          document.querySelectorAll("a.game[href], a.catalog-link[href], a.site-brand[href]").forEach(link => {
+            link.href = localizedUrl(link.href, language).href;
+          });
+          if (language === "sk") return;
+          document.title = translate(document.title);
+          const meta = document.querySelector('meta[name="description"]');
+          if (meta) meta.content = translate(meta.content);
+          translateTree(document.body);
+          const observer = new MutationObserver(records => {
+            for (const record of records) record.addedNodes.forEach(translateTree);
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+          window.addEventListener("beforeprint", () => translateTree(document.body));
+        });
+      })();
+    </script>
+  </head>
+  <body>
+
+    <header class="game-topbar">
+      <div class="game-brand-row">
+        <a class="site-brand" href="../../index.html" data-no-l10n>
+          <span class="game-brand-icon" aria-hidden="true">✿</span>
+          <span>Little Explorers</span>
+        </a>
+        <div class="language-bar" hidden>
+          <label class="language-control" for="worksheet-language">
+            <span>Jazyk</span>
+            <select id="worksheet-language"></select>
+          </label>
+        </div>
+      </div>
+      <nav class="game-links" aria-label="Všetky hry">
+        <a class="catalog-link" href="../../index.html">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 12H4m6-6-6 6 6 6"/>
+          </svg>
+          <span>Späť na hry</span>
+        </a>
+        <details class="games-menu" hidden>
+          <summary>Všetky hry</summary>
+          <div class="games-menu-panel">
+            <ul id="related-games"></ul>
+          </div>
+        </details>
+      </nav>
+    </header>
+
+    <header class="toolbar">
+      <h1>Doplň chýbajúcu cestu</h1>
+      <div class="actions">
+        <button class="secondary" type="button" onclick="generateWorksheet()">Nové úlohy</button>
+        <button type="button" onclick="window.print()">Vytlačiť list</button>
+      </div>
+    </header>
+    <main>
+      <section class="worksheet" aria-labelledby="worksheet-title">
+        <header class="page-header">
+          <h2 id="worksheet-title">Doplň chýbajúcu cestu</h2>
+          <p>V každom riadku zakrúžkuj dielik, ktorý pasuje do prázdneho políčka a spojí oba konce cesty. Potom podľa neho dokresli cestu do prázdneho políčka.</p>
+        </header>
+        <div id="worksheet-content"></div>
+      </section>
+    </main>
+    <footer class="game-footer">
+      <span>© 2026 Milan Jankovec</span>
+      <a href="https://github.com/milanjankovec/little-explorers">GitHub</a>
+      <a href="../../LICENSE">EUPL-1.2</a>
+    </footer>
+
+    <script>
+      const cell = 56;
+      const compass = {
+        north: [0, -1],
+        east: [1, 0],
+        south: [0, 1],
+        west: [-1, 0]
+      };
+      const straightTiles = [
+        ["north", "south"],
+        ["east", "west"]
+      ];
+      const cornerTiles = [
+        ["north", "east"],
+        ["east", "south"],
+        ["south", "west"],
+        ["west", "north"]
+      ];
+      const allTiles = [...straightTiles, ...cornerTiles];
+
+      function shuffle(items) {
+        const result = [...items];
+        for (let index = result.length - 1; index > 0; index--) {
+          const other = Math.floor(Math.random() * (index + 1));
+          [result[index], result[other]] = [result[other], result[index]];
+        }
+        return result;
+      }
+
+      function directedPoint(center, direction, distance) {
+        const [dx, dy] = compass[direction];
+        return [center + dx * distance, center + dy * distance];
+      }
+
+      function road(d) {
+        return `<path d="${d}" fill="none" stroke="#5b7669" stroke-width="27"/>
+          <path d="${d}" fill="none" stroke="#b9d1c2" stroke-width="23"/>
+          <path d="${d}" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="6 4"/>`;
+      }
+
+      function diagram(directions) {
+        const gridSide = 3 * cell;
+        const center = gridSide / 2;
+        const stubs = directions.map(direction => {
+          const outer = directedPoint(center, direction, gridSide / 2);
+          const inside = directedPoint(center, direction, cell / 2);
+          return road(`M${outer.join(" ")}L${inside.join(" ")}`);
+        }).join("");
+        return `<g transform="translate(38 10)">
+          <rect width="${gridSide}" height="${gridSide}" rx="7" fill="#fff" stroke="#aabdb0" stroke-width="1.8"/>
+          <path d="M56 0v168m56-168v168M0 56h168m-168 56h168" fill="none" stroke="#cddbce" stroke-width="1.4"/>
+          ${stubs}
+          <rect x="${cell + 2}" y="${cell + 2}" width="${cell - 4}" height="${cell - 4}" rx="5"
+            fill="#fff" stroke="#3f7960" stroke-width="2.2" stroke-dasharray="5 4"/>
+        </g>`;
+      }
+
+      function tileMarkup(directions, position) {
+        const left = 249 + position * 144;
+        const [start, finish] = directions.map(direction => directedPoint(cell / 2, direction, cell / 2));
+        const path = `M${start.join(" ")}Q${cell / 2} ${cell / 2} ${finish.join(" ")}`;
+        return `<g data-road-option="${directions.join(",")}">
+          <rect x="${left}" y="22" width="122" height="144" rx="15" fill="#fff" stroke="#aabdb0" stroke-width="1.6"/>
+          <svg x="${left + 20}" y="53" width="82" height="82" viewBox="0 0 ${cell} ${cell}" overflow="hidden">
+            <rect width="${cell}" height="${cell}" fill="#fff"/>
+            ${road(path)}
+          </svg>
+          <rect x="${left + 20}" y="53" width="82" height="82" fill="none" stroke="#7b998a" stroke-width="1.4"/>
+        </g>`;
+      }
+
+      function puzzleRow(needed, index) {
+        const alternatives = needed.map(direction => {
+          const nearMisses = allTiles.filter(tile => tile !== needed && tile.includes(direction));
+          return nearMisses[Math.floor(Math.random() * nearMisses.length)];
+        });
+        const candidates = shuffle([needed, ...alternatives]);
+        return `<g data-road-ends="${needed.join(",")}" transform="translate(0 ${21 + index * 201})">
+          <rect x="7" width="686" height="188" rx="18" fill="#fff" stroke="#adc0b4" stroke-width="1.8"/>
+          ${diagram(needed)}
+          <path d="M227 37v114" fill="none" stroke="#c1d0c6" stroke-width="1.5"/>
+          ${candidates.map(tileMarkup).join("")}
+        </g>`;
+      }
+
+      function generateWorksheet() {
+        const plans = shuffle([...straightTiles, ...shuffle(cornerTiles).slice(0, 2)]);
+        document.querySelector("#worksheet-content").innerHTML = `
+          <svg class="activity-drawing" viewBox="0 0 700 850" aria-hidden="true">
+            ${plans.map(puzzleRow).join("")}
+          </svg>`;
+      }
+
+      generateWorksheet();
+    </script>
+  </body>
+</html>
